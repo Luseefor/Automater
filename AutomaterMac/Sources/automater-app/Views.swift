@@ -25,7 +25,7 @@ struct CompactPanelView: View {
                 panelTab(.repeatAction)
                 panelTab(.macros)
                 Spacer()
-                Button { openWindow(id: "clipboard-panel") } label: {
+                Button { MenuBarController.shared.openClipboard() } label: {
                     HeaderIcon(name: "doc.on.clipboard")
                 }
                 .buttonStyle(.plain)
@@ -72,11 +72,12 @@ struct CompactPanelView: View {
         }
         .onAppear {
             pocket.connect(state)
-
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .automaterShowClipboard)) { _ in
-            openWindow(id: "clipboard-panel")
-            NSApp.activate(ignoringOtherApps: true)
+            MenuBarController.shared.configure(
+                state: state, pocket: pocket,
+                showPanel: { openWindow(id: "compact-panel") },
+                showClipboard: { openWindow(id: "clipboard-panel") },
+                showSettings: { openSettings() }
+            )
         }
     }
 

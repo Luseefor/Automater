@@ -59,6 +59,19 @@ public final class HotkeyManager {
         )
     }
 
+    /// AppKit's menu tracking loop can leave Carbon hotkeys queued until
+    /// tracking ends. Drain only hotkey presses during that loop, using the
+    /// same registered dispatcher as ordinary application event processing.
+    public func dispatchPendingHotkeys() {
+        var type = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        for _ in 0..<16 {
+            var event: EventRef?
+            guard ReceiveNextEvent(1, &type, 0, true, &event) == noErr, let event else { return }
+            SendEventToEventTarget(event, GetApplicationEventTarget())
+            ReleaseEvent(event)
+        }
+    }
+
     fileprivate func dispatch(id: UInt32) {
         hotkeys[id]?()
     }

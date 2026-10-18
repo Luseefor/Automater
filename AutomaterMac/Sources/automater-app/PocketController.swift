@@ -27,6 +27,8 @@ final class PocketController: ObservableObject {
                       app.processIdentifier != ownPID, app.activationPolicy == .regular else { return }
                 self?.lastExternalApp = app
             }.store(in: &cancellables)
+        NotificationCenter.default.publisher(for: .automaterShowClipboard)
+            .sink { _ in MenuBarController.shared.openClipboard() }.store(in: &cancellables)
         NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)
             .sink { [weak self] _ in self?.stop() }.store(in: &cancellables)
     }
