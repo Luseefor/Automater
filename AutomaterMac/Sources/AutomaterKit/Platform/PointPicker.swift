@@ -17,6 +17,8 @@ public final class PointPicker {
 
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var swallowedButtons = Set<UInt32>()
+    private var finishing = false
 
     public var active: Bool { tap != nil }
 
@@ -27,6 +29,8 @@ public final class PointPicker {
     public func start() {
         guard tap == nil else { return }
         count = 0
+        swallowedButtons.removeAll()
+        finishing = false
 
         let callback: CGEventTapCallBack = { _, type, event, refcon in
             guard let refcon else { return Unmanaged.passUnretained(event) }
@@ -37,7 +41,7 @@ public final class PointPicker {
         func maskBit(_ t: CGEventType) -> UInt64 { 1 << t.rawValue }
         let mask: CGEventMask =
             maskBit(.leftMouseDown) | maskBit(.rightMouseDown)
-            | maskBit(.keyDown)
+            | maskBit(.leftMouseUp) | maskBit(.rightMouseUp) | maskBit(.keyDown)
 
         guard let port = CGEvent.tapCreate(
             tap: .cghidEventTap, place: .headInsertEventTap,
@@ -63,12 +67,14 @@ public final class PointPicker {
         }
         tap = nil
         runLoopSource = nil
+        swallowedButtons.removeAll()
+        finishing = false
         onFinish?(finished)
     }
 
     // MARK: - Event handling
 
-    fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+    func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         // Re-enable after system-imposed timeouts so picking never dies silently.
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let port = tap { CGEvent.tapEnable(tap: port, enable: true) }
@@ -77,8 +83,8 @@ public final class PointPicker {
 
         if type == .keyDown,
            event.getIntegerValueField(.keyboardEventKeycode) == Int64(Self.escapeKeyCode) {
-            stop(finished: true)
-            return nil // swallow the Escape
+            finishAfterEvent()
+            return nil // return the swallowed event before disabling its tap
         }
 
         switch type {
@@ -87,12 +93,27 @@ public final class PointPicker {
             if WindowScanner.ownsPoint(cgLocation: event.location) {
                 return Unmanaged.passUnretained(event)
             }
-            count += 1
-            onPoint?(event.location)
-            if singleShot { stop(finished: true) }
-            return nil // swallowed — picking clicks never click through
+            swallowedButtons.insert(type.rawValue)
+            if !singleShot || count == 0 {
+                count += 1
+                onPoint?(event.location)
+            }
+            return nil
+        case .leftMouseUp, .rightMouseUp:
+            let down: CGEventType = type == .leftMouseUp ? .leftMouseDown : .rightMouseDown
+            guard swallowedButtons.remove(down.rawValue) != nil else { return Unmanaged.passUnretained(event) }
+            if singleShot { finishAfterEvent() }
+            return nil
         default:
             return Unmanaged.passUnretained(event)
         }
     }
+    private func finishAfterEvent() {
+        guard !finishing else { return }
+        finishing = true
+        // Disabling a tap inside its callback can release the event we meant
+        // to swallow. Finish on the next turn, after the full click pair.
+        DispatchQueue.main.async { [weak self] in self?.stop(finished: true) }
+    }
+
 }
