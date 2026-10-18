@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-18",
+  "app": "Tandem",
+  "version": "0.3.1",
+  "automated_tests": {
+    "command": "swift test --package-path AutomaterMac",
+    "passed": 91,
+    "failed": 0,
+    "new_status_menu_tests": 5
+  },
+  "installed_app_live_checks": [
+    "Idle menu shows branded Ready header",
+    "Empty macro playback and idle Stop All are disabled",
+    "Menu displays global shortcuts",
+    "Open Tandem shows main panel",
+    "Settings opens from status menu",
+    "Clipboard opens from status menu",
+    "Loaded macro enables playback",
+    "Running macro exposes Stop Playback and Stop All",
+    "Running menu shows active status",
+    "Open menu refreshes when playback finishes",
+    "Global Play starts once with the status menu open",
+    "Global Play toggles playback off while menu tracks",
+    "Global Stop All responds while menu tracks",
+    "Stop All stops playback and returns to idle",
+    "Macro menu toggles playback off"
+  ],
+  "scope": "Native status menu presentation, navigation, state availability, live refresh and global playback/stop shortcuts. Playback used one four-second delay step; no input was sent into other apps.",
+  "signing": {
+    "strict_verification": "passed",
+    "installed_matches_dist": true,
+    "binary_sha256": "aff67e723d290e51256f23329f233bf22f9d12b2856d97d8bb1cdb54f6a1b6ac"
+  },
+  "cleanup": {
+    "temporary_delay_macro_removed": true,
+    "user_macros_preserved": true,
+    "clipboard_contents_not_read": true
+  },
+  "preview": "tandem-status-menu.png",
+  "changes": [
+    "Grouped native menu with branded live status and consistent SF Symbols",
+    "Clearer 16-point menu bar glyph",
+    "Playback and Stop disabled when unavailable; active actions become Stop",
+    "Settings, Clipboard and main panel navigation after menu tracking ends",
+    "Carbon hotkey queue serviced during menu tracking so playback and emergency stop respond without dismissing the menu"
+  ]
+}

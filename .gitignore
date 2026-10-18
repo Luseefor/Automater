@@ -8,3 +8,9 @@ build/
 
 # generated iconset intermediates (icns is the artifact)
 AutomaterMac/assets/Automater.iconset/
+
+# Local design experiments; reviewed verification evidence lives in output/qa.
+/output/design-concepts/
+/output/workbench/
+/output/automater-*.png
+/output/branding/

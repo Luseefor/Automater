@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-18",
+  "product": "Tandem",
+  "version": "0.3.0",
+  "automated_tests": {
+    "passed": 86,
+    "failed": 0,
+    "command": "swift test --package-path AutomaterMac"
+  },
+  "live_checks": [
+    "Long macro loads nine entries",
+    "First entry removed",
+    "Middle entry removed",
+    "Last entry removed",
+    "Saved list keeps remaining order and loop count",
+    "Reload keeps six entries",
+    "Playback completed with expected entry order",
+    "Background loop delivers four clicks to each target",
+    "Deleting one saved macro preserves other entries",
+    "Playback completed with expected entry order",
+    "Deleting all entries leaves an empty macro",
+    "Saving and reloading empty macro does not restore deleted steps",
+    "Recording captures an entry",
+    "Clear Recording stays empty instead of restoring loaded steps",
+    "Cleared recording saves as empty",
+    "Pick Click Point adds one entry",
+    "Point picking consumes setup click",
+    "Picked point keeps the exact window and local coordinates",
+    "Playback completed with expected entry order",
+    "Empty macro Play button is disabled"
+  ],
+  "background_replay": {
+    "initial_steps": 9,
+    "removed_original_indices": [
+      0,
+      4,
+      8
+    ],
+    "remaining_step_order": [
+      1,
+      2,
+      0,
+      2,
+      0,
+      1
+    ],
+    "loop_count": 2,
+    "observed_order": [
+      1,
+      2,
+      0,
+      2,
+      0,
+      1,
+      1,
+      2,
+      0,
+      2,
+      0,
+      1
+    ],
+    "observed_counts": [
+      4,
+      4,
+      4
+    ]
+  },
+  "additional_fixture_events": {
+    "saved_macro_playback": [
+      2
+    ],
+    "recorded_click": [
+      2
+    ],
+    "picked_point_setup": [],
+    "picked_point_playback": [
+      0
+    ]
+  },
+  "cleanup": {
+    "temporary_macros_remaining": 0,
+    "fixture_process_stopped": true,
+    "theme_restored": "dark",
+    "repeat_interval_ms": 240000
+  },
+  "installed_app": "/Applications/Tandem.app",
+  "bundle_identifier": "com.luseefor.automater",
+  "data_directory": "/Users/lucifer/Library/Application Support/AutomaterMac",
+  "installed_matches_dist": true,
+  "binary_sha256": "4d884ddf4cd1a0781240b8d529eab6c38d499ebb990a441955c4ff229d3109ce",
+  "notes": [
+    "Existing storage and signing identity retained across the rename. Recording and background playback worked in the renamed installed app without another Accessibility grant.",
+    "An early fixture run referenced retired test windows; playback stopped without redirecting clicks. Temporary duplicate fixture entries were removed before the successful live audit.",
+    "Native UI checks used a controlled three-button test window. They do not establish universal third-party app compatibility.",
+    "Light and dark screenshots were captured from the installed app. Clipboard contents were not inspected."
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-18",
+  "scope": "Native macOS application menus",
+  "automated_tests": {
+    "passed": 78,
+    "failed": 0,
+    "command": "swift test --package-path AutomaterMac"
+  },
+  "installed_app": "/Applications/Automater.app",
+  "signature_verification": "codesign --verify --deep --strict passed",
+  "installed_matches_dist": true,
+  "binary_sha256": "cf7b9139087377e8c77072452e37b55459053ca03993284cdb31f2ff43daffad",
+  "live_checks": [
+    "New Macro opens Macros panel",
+    "Native field editing updates macro name",
+    "New Macro protects an unsaved draft",
+    "Cancel retains draft",
+    "Save command writes draft",
+    "Duplicate opens a separate macro",
+    "Export presents native save panel",
+    "Import loads macro from native open panel",
+    "Playback menu switches to Stop Macro",
+    "Playback stops from menu",
+    "View shortcuts switch panel",
+    "Help opens a real window",
+    "Close shortcut closes Help",
+    "Settings opens",
+    "About displays app identity and installed version",
+    "Close shortcut closes main panel",
+    "Show Automater reopens closed panel",
+    "Clipboard shortcut opens history",
+    "Find command focuses clipboard search",
+    "Pause History changes capture preference",
+    "Pause History restores previous capture preference",
+    "Appearance menu applies selected theme",
+    "Appearance restores previous theme",
+    "New command clears saved draft without alert",
+    "Quit protects an unsaved draft",
+    "Cancel Quit keeps the app and draft",
+    "Discard opens a fresh draft",
+    "Quit stops active playback and exits cleanly",
+    "Temporary QA macros removed",
+    "Installed app relaunches normally"
+  ],
+  "notes": [
+    "Macro file round-trip, legacy format, malformed input rejection, identity isolation, and draft tracking are covered by automated tests.",
+    "Live export checked presentation and cancellation of the native save panel; serialization round-trip was checked with temporary files in XCTest.",
+    "Playback and shutdown checks used a delay-only macro, posting no input into another app.",
+    "Accessibility snapshots were rechecked after modal transitions with explicit app focus.",
+    "Temporary test macros were removed. Theme and clipboard pause values were restored. Clipboard contents were not inspected.",
+    "The locally signed build was installed and reopened. This is not a notarization check."
+  ]
+}

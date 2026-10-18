@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-17",
+  "automated_tests": {
+    "passed": 72,
+    "failed": 0
+  },
+  "native_fixture_checks": [
+    "Saved/reloaded two-point background macro delivered 3 clicks per point without activation",
+    "Saved foreground macro focused its window, selected text and typed Unicode correctly",
+    "Native view received correct double-click counts [1,2]",
+    "Native view received a held mouse press and release",
+    "Native view received interpolated drag events",
+    "Native view received scrolling at the recorded point",
+    "Five temporary macros created and verified in real macro storage"
+  ],
+  "installed_app_checks": [
+    "Installed app loaded a saved two-point macro and global Play delivered exactly 3 clicks per point",
+    "Global Play shortcut toggled continuous playback off with no later clicks",
+    "Global Stop All cancelled a delayed macro before its click",
+    "Installed foreground macro focused the fixture and typed the expected Unicode text",
+    "Actual Record, global record-stop, Save and background replay round-trip worked",
+    "Deleting the last recorded step, saving and reloading kept the macro empty and Play disabled"
+  ],
+  "fixes": [
+    "Keep an empty recording empty after deletion, save and reload",
+    "Preserve selected target when saving a manual macro",
+    "Record and replay native double/triple click counts",
+    "Release held keys, modifiers and mouse buttons on stop; prevent old playback releasing a new run",
+    "Reject malformed keyboard chords before sending input",
+    "Preserve focused field selection between macro steps and allow shortcut key presses to register",
+    "Keep native popup items stable across view updates"
+  ],
+  "installed_binary_matches_build": true,
+  "temporary_macros_removed": true,
+  "original_settings_restored": true,
+  "limitations": [
+    "Background delivery depends on the target application",
+    "Keyboard and text macros require Foreground playback",
+    "Closed target windows stop playback"
+  ]
+}
