@@ -12,6 +12,8 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
     public var targetAppName: String?
     public var targetWindowTitle: String?
     public var activateBeforePlay: Bool
+    /// Nil keeps the legacy preference until the macro is loaded and saved.
+    public var backgroundPlayback: Bool?
 
     public init(
         id: String = UUID().uuidString.prefix(12).description,
@@ -22,7 +24,8 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
         targetAppBundleId: String? = nil,
         targetAppName: String? = nil,
         targetWindowTitle: String? = nil,
-        activateBeforePlay: Bool = true
+        activateBeforePlay: Bool = true,
+        backgroundPlayback: Bool? = nil
     ) {
         self.id = id
         self.name = name
@@ -33,6 +36,7 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
         self.targetAppName = targetAppName
         self.targetWindowTitle = targetWindowTitle
         self.activateBeforePlay = activateBeforePlay
+        self.backgroundPlayback = backgroundPlayback
     }
 
     enum CodingKeys: String, CodingKey {
@@ -42,6 +46,7 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
         case targetAppName = "target_app_name"
         case targetWindowTitle = "target_window_title"
         case activateBeforePlay = "activate_before_play"
+        case backgroundPlayback = "background_playback"
     }
 
     /// Lenient decode for persisted macro files.
@@ -57,6 +62,7 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
         self.targetAppName = try c.decodeIfPresent(String.self, forKey: .targetAppName)
         self.targetWindowTitle = try c.decodeIfPresent(String.self, forKey: .targetWindowTitle)
         self.activateBeforePlay = try c.decodeIfPresent(Bool.self, forKey: .activateBeforePlay) ?? true
+        self.backgroundPlayback = try c.decodeIfPresent(Bool.self, forKey: .backgroundPlayback)
     }
 }
 
