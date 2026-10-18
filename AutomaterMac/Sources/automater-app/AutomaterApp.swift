@@ -24,7 +24,7 @@ struct AutomaterApp: App {
         }
         .defaultSize(width: 500, height: 540)
         .windowToolbarStyle(.unifiedCompact)
-        .commands { commands }
+        .commands { AutomaterCommands(state: state, clipboard: pocket.clipboard) }
 
         Window("Clipboard", id: "clipboard-panel") {
             ClipboardHistoryView(clipboard: pocket.clipboard)
@@ -32,6 +32,10 @@ struct AutomaterApp: App {
                 .modifier(AppAppearance())
                 .frame(minWidth: 620, minHeight: 420)
         }.defaultSize(width: 740, height: 500)
+
+        Window("Tandem Help", id: "help") {
+            AutomaterHelpView().modifier(AppAppearance())
+        }.defaultSize(width: 520, height: 490).windowResizability(.contentSize)
 
         Settings {
             SettingsView()
@@ -41,37 +45,6 @@ struct AutomaterApp: App {
         }
     }
 
-    /// Native menu-bar commands (in-app; global Carbon hotkeys are separate).
-    @CommandsBuilder
-    private var commands: some Commands {
-        CommandGroup(replacing: .newItem) {
-            Button("New Macro") { state.newMacro() }
-                .keyboardShortcut("n")
-        }
-        CommandGroup(after: .newItem) {
-            Button("Save Macro") { state.saveCurrentMacro() }
-                .keyboardShortcut("s")
-        }
-        CommandMenu("Controls") {
-            Button(state.isClicking ? "Stop Clicking" : "Start Clicking") {
-                state.toggleClicker()
-            }
-            .keyboardShortcut("a", modifiers: [.command, .shift])
-            Button(state.recorder.recording ? "Stop Recording" : "Record") {
-                state.toggleRecording()
-            }
-            .keyboardShortcut("r", modifiers: [.command])
-            Button("Play Current Macro") {
-                let m = state.playableMacro()
-                guard !m.steps.isEmpty else { return }
-                state.play(macro: m)
-            }
-            .keyboardShortcut("p", modifiers: [.command])
-            Divider()
-            Button("Stop Everything") { state.stopAll() }
-                .keyboardShortcut(".", modifiers: [.command])
-        }
-    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -181,7 +154,6 @@ extension Notification.Name {
     static let automaterGrabPoint = Notification.Name("automaterGrabPoint")
     static let automaterPlayToggle = Notification.Name("automaterPlayToggle")
     static let automaterShowClipboard = Notification.Name("automaterShowClipboard")
-    static let automaterFindClipboard = Notification.Name("automaterFindClipboard")
     /// `object` carries a user-facing status message (String).
     static let automaterStatus = Notification.Name("automaterStatus")
 }
