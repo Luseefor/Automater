@@ -8,8 +8,8 @@ let rect = NSRect(origin: .zero, size: size)
 let gradient = NSGradient(colors: [NSColor(calibratedRed: 0.06, green: 0.05, blue: 0.18, alpha: 1),
                                     NSColor(calibratedRed: 0.16, green: 0.09, blue: 0.40, alpha: 1)])!
 gradient.draw(in: rect, angle: -30)
-let title = "Automate your workflow"
-let subtitle = "Drag Automater to Applications — then click less, do more."
+let title = "A little less repetition"
+let subtitle = "Drag Tandem to Applications — then click less, do more."
 let titleStyle: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 28, weight: .bold), .foregroundColor: NSColor.white]
 let subStyle: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 15, weight: .medium), .foregroundColor: NSColor.white.withAlphaComponent(0.78)]
 title.draw(at: NSPoint(x: 218, y: 350), withAttributes: titleStyle)

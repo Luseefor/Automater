@@ -36,7 +36,7 @@ struct FlagReader {
 
 let argv = Array(CommandLine.arguments.dropFirst())
 guard let command = argv.first else {
-    print("automater-cli 0.1.0 (swift-rewrite)")
+    print("automater-cli 0.2.1")
     exit(0)
 }
 var flags = FlagReader(args: Array(argv.dropFirst()))
@@ -44,7 +44,7 @@ var flags = FlagReader(args: Array(argv.dropFirst()))
 switch command {
 
 case "--version":
-    print("automater-cli 0.1.0 (swift-rewrite)")
+    print("automater-cli 0.2.1")
     exit(0)
 
 case "cursor":
