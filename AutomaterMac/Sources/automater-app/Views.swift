@@ -63,12 +63,16 @@ struct CompactPanelView: View {
         .buttonBorderShape(.roundedRectangle(radius: 6))
         .modifier(HideDefaultWindowTitle())
         .toolbar {
+            #if compiler(>=6.2)
             if #available(macOS 26, *) {
                 ToolbarItem(placement: .principal) { AppBrandLabel() }
                     .sharedBackgroundVisibility(.hidden)
             } else {
                 ToolbarItem(placement: .principal) { AppBrandLabel() }
             }
+            #else
+            ToolbarItem(placement: .principal) { AppBrandLabel() }
+            #endif
         }
         .onAppear {
             pocket.connect(state)

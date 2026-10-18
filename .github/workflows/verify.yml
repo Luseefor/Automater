@@ -22,8 +22,8 @@ jobs:
       - name: Upload review artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Automater-macOS-unsigned
+          name: Tandem-macOS-unsigned
           path: |
-            dist/Automater.app
-            dist/Automater.zip
+            dist/Tandem.app
+            dist/Tandem.zip
           if-no-files-found: error
