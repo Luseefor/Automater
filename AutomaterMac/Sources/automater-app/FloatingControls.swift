@@ -7,13 +7,13 @@ enum FloatingControls {
 
     static func toggle(state: AppState) {
         if let panel, panel.isVisible { panel.orderOut(nil); return }
-        let view = FloatingControlsView().environmentObject(state)
+        let view = FloatingControlsView().environmentObject(state).modifier(AppAppearance())
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 330, height: 280),
             styleMask: [.titled, .closable, .utilityWindow],
             backing: .buffered, defer: false
         )
-        panel.title = "Automater Controls"
+        panel.title = "Tandem Controls"
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
@@ -37,17 +37,20 @@ private struct FloatingControlsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(state.isClicking ? "Clicker running" : "Ready to run",
-                  systemImage: "cursorarrow.click.2")
+            Label(state.isClicking ? "Running" : "Ready to run",
+                  systemImage: state.repeatAction == .keyPress ? "keyboard" : "cursorarrow.click.2")
                 .font(.headline)
                 .foregroundStyle(state.isClicking ? .green : .primary)
             Divider()
             row("Interval", "\(state.intervalTotalMs) ms")
-            row("Click", "\(state.button.rawValue.capitalized) · \(state.kind.rawValue)")
-            row("Mode", modeLabel)
-            row("Repeat", state.repeatCount == 0 ? "Until stopped" : "\(state.repeatCount) clicks")
+            row("Action", state.repeatAction == .keyPress ? state.repeatKey
+                : "\(state.button.rawValue.capitalized) · \(state.kind.rawValue)")
+            row("Target", state.backgroundToApp ? (state.targetWindow?.ownerName ?? "None selected") : "Foreground")
+            row("Repeat", state.repeatCount == 0 ? "Until stopped" : "\(state.repeatCount) times")
             Divider()
-            Label(state.backgroundCompatibility.title, systemImage: "questionmark.circle")
+            Label(state.backgroundToApp ? (state.repeatAction == .keyPress ? "Background keyboard events"
+                : state.backgroundCompatibility.title) : "Foreground delivery",
+                  systemImage: state.backgroundToApp ? "app.badge" : "display")
                 .foregroundStyle(.secondary)
             Text("Stays above other windows and Spaces.")
                 .font(.caption)
@@ -63,14 +66,6 @@ private struct FloatingControlsView: View {
         .padding(18)
         .frame(width: 330, height: 280, alignment: .topLeading)
         .background(.ultraThinMaterial)
-    }
-
-    private var modeLabel: String {
-        switch state.mode {
-        case .currentCursor: return "Current cursor"
-        case .fixedPoint: return "Fixed point"
-        case .multipoint: return "\(state.multipoints.count) points"
-        }
     }
 
     private func row(_ label: String, _ value: String) -> some View {

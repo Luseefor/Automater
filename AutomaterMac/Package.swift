@@ -18,6 +18,7 @@ let package = Package(
             name: "automater-app",
             dependencies: ["AutomaterKit"]
         ),
+        .testTarget(name: "AutomaterAppTests", dependencies: ["automater-app"]),
         .testTarget(
             name: "AutomaterKitTests",
             dependencies: ["AutomaterKit"]
