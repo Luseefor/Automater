@@ -149,6 +149,10 @@ public struct ClickerConfig: Sendable, Equatable {
     public var multipoints: [PointSpec]
     public var backgroundToApp: Bool
     public var deliveryMode: DeliveryMode
+    /// Multipoint timing: false runs one point per interval (repeat counts
+    /// points); true fires all points as one ~100ms burst per round (repeat
+    /// counts full rounds, interval pauses between rounds).
+    public var multipointBurst: Bool
 
     public init(
         intervalMs: Int = 100,
@@ -170,7 +174,8 @@ public struct ClickerConfig: Sendable, Equatable {
         backgroundToApp: Bool = false,
         deliveryMode: DeliveryMode = .events,
         action: Action = .mouseClick,
-        keyCombo: String = "space"
+        keyCombo: String = "space",
+        multipointBurst: Bool = false
     ) {
         self.intervalMs = intervalMs
         self.action = action
@@ -192,5 +197,6 @@ public struct ClickerConfig: Sendable, Equatable {
         self.multipoints = multipoints
         self.backgroundToApp = backgroundToApp
         self.deliveryMode = deliveryMode
+        self.multipointBurst = multipointBurst
     }
 }

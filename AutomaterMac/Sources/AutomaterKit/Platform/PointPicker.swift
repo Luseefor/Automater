@@ -13,7 +13,9 @@ public final class PointPicker {
     public var onFinish: ((_ finished: Bool) -> Void)?
     public private(set) var count = 0
     /// When true, the first captured point ends the pick (fixed-point grab).
-    public var singleShot = false
+    public var singleShot = false {
+        didSet { if singleShot { count = 0 } }
+    }
 
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?

@@ -1,10 +1,24 @@
 import CoreGraphics
 import Foundation
+import AppKit
+import Darwin
 
 /// Posts synthetic CG events — globally (HID tap) or targeted at one process
 /// and window, which is what makes background clicking work without moving
 /// the physical pointer.
 public struct EventPoster: Sendable {
+
+    // CoreGraphics has no public setter for the window-local part of a
+    // pid-routed event. Resolve this compatibility symbol optionally; the
+    // engine retains Accessibility delivery when it is unavailable.
+    private typealias WindowLocationSetter = @convention(c) (CGEvent, CGPoint) -> Void
+    private static let windowLocationSetter: WindowLocationSetter? = {
+        guard let image = dlopen(nil, RTLD_LAZY) else { return nil }
+        defer { dlclose(image) }
+        guard let symbol = dlsym(image, "CGEventSetWindowLocation") else { return nil }
+        return unsafeBitCast(symbol, to: WindowLocationSetter.self)
+    }()
+    static var canRouteWindowBursts: Bool { windowLocationSetter != nil }
 
     private var eventSink: (@Sendable (CGEvent, pid_t?) -> Void)?
 
@@ -95,6 +109,17 @@ public struct EventPoster: Sendable {
         )
     }
 
+    private static func downUp(for button: MouseButton) -> (CGEventType, CGEventType) {
+        switch button {
+        case .right:
+            return (.rightMouseDown, .rightMouseUp)
+        case .middle:
+            return (.otherMouseDown, .otherMouseUp)
+        case .left:
+            return (.leftMouseDown, .leftMouseUp)
+        }
+    }
+
     /// Full press/release series for a click kind at one point.
     public func click(
         x: Double, y: Double,
@@ -103,16 +128,7 @@ public struct EventPoster: Sendable {
         pid: pid_t? = nil,
         windowNumber: Int? = nil
     ) {
-        let downType: CGEventType
-        let upType: CGEventType
-        switch button {
-        case .right:
-            downType = .rightMouseDown; upType = .rightMouseUp
-        case .middle:
-            downType = .otherMouseDown; upType = .otherMouseUp
-        case .left:
-            downType = .leftMouseDown; upType = .leftMouseUp
-        }
+        let (downType, upType) = Self.downUp(for: button)
 
         for press in 1...kind.presses {
             postMouseEvent(downType, x: x, y: y, button: button,
@@ -145,6 +161,37 @@ public struct EventPoster: Sendable {
         click(x: x, y: y, button: button, kind: kind)
     }
 
+    /// Burst raw click: one balanced down/up per press, no hover-settling,
+    /// no sleeps. Same event fields and click counts as click(); speed is
+    /// the only difference. No hard timing guarantee is made.
+    public func burstClick(
+        x: Double, y: Double,
+        button: MouseButton = .left,
+        kind: ClickKind = .single,
+        pid: pid_t? = nil,
+        windowNumber: Int? = nil
+    ) {
+        let (downType, upType) = Self.downUp(for: button)
+        for press in 1...kind.presses {
+            postMouseEvent(downType, x: x, y: y, button: button,
+                           pid: pid, clickState: press, windowNumber: windowNumber)
+            postMouseEvent(upType, x: x, y: y, button: button,
+                           pid: pid, clickState: press, windowNumber: windowNumber)
+        }
+    }
+
+    /// Foreground burst: relocate the pointer (intended for foreground
+    /// delivery), then a sleep-free balanced click.
+    public func burstForegroundClick(
+        x: Double, y: Double,
+        button: MouseButton = .left,
+        kind: ClickKind = .single
+    ) {
+        warpCursor(x: x, y: y)
+        moveCursor(x: x, y: y)
+        burstClick(x: x, y: y, button: button, kind: kind)
+    }
+
     /// Background click straight into one process+window; pointer untouched.
     public func backgroundClick(
         x: Double, y: Double,
@@ -167,6 +214,52 @@ public struct EventPoster: Sendable {
             moveCursor(x: x, y: y, pid: target, windowNumber: windowNumber)
             click(x: x, y: y, button: button, kind: kind,
                   pid: target, windowNumber: windowNumber)
+        }
+    }
+
+    /// Background burst straight into one process+window; pointer untouched,
+    /// no hover-settling, no sleeps. Balanced down/up per press.
+    public func burstBackgroundClick(
+        x: Double, y: Double,
+        pid: pid_t,
+        childPIDs: [pid_t] = [],
+        windowNumber: Int? = nil,
+        button: MouseButton = .left,
+        kind: ClickKind = .single,
+        windowBounds: CGRect? = nil
+    ) {
+        var targets = [pid]
+        for child in childPIDs where !targets.contains(child) {
+            targets.append(child)
+        }
+        for target in targets {
+            if let windowNumber, let bounds = windowBounds {
+                // CGEventPostToPid does not assign NSEvent.windowNumber.
+                // Construct a public AppKit event for the exact window with
+                // window-local coordinates, then bridge it for delivery.
+                let local = NSPoint(x: x - bounds.minX, y: bounds.maxY - y)
+                let types: (NSEvent.EventType, NSEvent.EventType) = button == .right
+                    ? (.rightMouseDown, .rightMouseUp) : button == .middle
+                    ? (.otherMouseDown, .otherMouseUp) : (.leftMouseDown, .leftMouseUp)
+                for press in 1...kind.presses {
+                    for type in [types.0, types.1] {
+                        guard let native = NSEvent.mouseEvent(with: type, location: local,
+                            modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                            windowNumber: windowNumber, context: nil, eventNumber: 0,
+                            clickCount: press, pressure: type == types.0 ? 1 : 0),
+                              let event = native.cgEvent else { continue }
+                        event.location = CGPoint(x: x, y: y)
+                        Self.windowLocationSetter?(event, CGPoint(x: x - bounds.minX, y: y - bounds.minY))
+                        event.setIntegerValueField(.windowUnderMousePointer, value: Int64(windowNumber))
+                        event.setIntegerValueField(.windowUnderMousePointerHandler, value: Int64(windowNumber))
+                        event.setIntegerValueField(.mouseEventButtonNumber, value: Int64(button.cgButton.rawValue))
+                        post(event, pid: target)
+                    }
+                }
+            } else {
+                burstClick(x: x, y: y, button: button, kind: kind,
+                           pid: target, windowNumber: windowNumber)
+            }
         }
     }
 

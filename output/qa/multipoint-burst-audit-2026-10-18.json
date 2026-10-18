@@ -1,0 +1,735 @@
+{
+  "date": "2026-10-18",
+  "app": "Tandem",
+  "version": "0.3.5",
+  "feature": "Multi-point mouse bursts and re-picking",
+  "automated_tests": {
+    "passed": 138,
+    "failed": 0,
+    "new_burst_tests": 10,
+    "command": "swift test --package-path AutomaterMac"
+  },
+  "native": {
+    "checks": [
+      "Temporary native windows are running",
+      "Three points captured without clicking the target controls",
+      "Re-pick moves point two without adding another point",
+      "Background burst 1 exact point order",
+      "Background burst 1 clicks within 100ms target tolerance",
+      "Background burst 1 does not send clicks to the active app",
+      "Background burst 2 exact point order",
+      "Background burst 2 clicks within 100ms target tolerance",
+      "Background burst 2 does not send clicks to the active app",
+      "Background burst 3 exact point order",
+      "Background burst 3 clicks within 100ms target tolerance",
+      "Background burst 3 does not send clicks to the active app",
+      "Moved-window burst exact point order",
+      "Moved-window burst clicks within 100ms target tolerance",
+      "Moved-window burst does not send clicks to the active app",
+      "Foreground burst clicks the exact same three points",
+      "Foreground burst stays within 100ms target tolerance",
+      "Two rounds repeat every captured point",
+      "Interval separates full rounds",
+      "Finite burst stops without another round",
+      "Continuous bursts start",
+      "Global Stop cancels later rounds",
+      "Tandem exits gracefully for test cleanup"
+    ],
+    "evidence": {
+      "runs": [
+        {
+          "name": "Background burst 1",
+          "order": [
+            "0:0",
+            "1:0",
+            "0:2"
+          ],
+          "span_ms": 47.82662499928847,
+          "times": [
+            409865.70271829166,
+            409865.7257004167,
+            409865.75054491666
+          ],
+          "cursor_before": "2899.166748046875 -224.0",
+          "cursor_after": "2899.166748046875 -224.0",
+          "frontmost_after": "com.luseefor.tandem.background-cover-qa",
+          "other_mouse_downs": 0
+        },
+        {
+          "name": "Background burst 2",
+          "order": [
+            "0:0",
+            "1:0",
+            "0:2"
+          ],
+          "span_ms": 51.79583333665505,
+          "times": [
+            409866.6811785417,
+            409866.70841870835,
+            409866.732974375
+          ],
+          "cursor_before": "2899.166748046875 -224.0",
+          "cursor_after": "2899.166748046875 -224.0",
+          "frontmost_after": "com.luseefor.tandem.background-cover-qa",
+          "other_mouse_downs": 0
+        },
+        {
+          "name": "Background burst 3",
+          "order": [
+            "0:0",
+            "1:0",
+            "0:2"
+          ],
+          "span_ms": 49.54737500520423,
+          "times": [
+            409867.7373632084,
+            409867.75993062503,
+            409867.7869105834
+          ],
+          "cursor_before": "2899.166748046875 -224.0",
+          "cursor_after": "2899.166748046875 -224.0",
+          "frontmost_after": "com.luseefor.tandem.background-cover-qa",
+          "other_mouse_downs": 0
+        },
+        {
+          "name": "Moved-window burst",
+          "order": [
+            "0:0",
+            "1:0",
+            "0:2"
+          ],
+          "span_ms": 53.4429166582413,
+          "times": [
+            409868.77964220836,
+            409868.8076232084,
+            409868.833085125
+          ],
+          "cursor_before": "2899.166748046875 -224.0",
+          "cursor_after": "2899.166748046875 -224.0",
+          "frontmost_after": "com.luseefor.tandem.background-cover-qa",
+          "other_mouse_downs": 0
+        }
+      ],
+      "repick_armed": {
+        "count": 3,
+        "timing": "Burst ~100ms",
+        "status": "Click where point 2 should move",
+        "coordinates": [
+          "2,435, -224",
+          "3,032, -224",
+          "2,701, -224"
+        ]
+      },
+      "after_repick": {
+        "count": 3,
+        "timing": "Burst ~100ms",
+        "status": "Point 2 moved to (2899, -224)",
+        "coordinates": [
+          "2,435, -224",
+          "2,899, -224",
+          "2,701, -224"
+        ]
+      },
+      "Background burst 1_actual": {
+        "events": [
+          {
+            "type": 1,
+            "window": 56127,
+            "time": 409865.69211470836,
+            "x": 84.166748046875,
+            "y": 137
+          },
+          {
+            "y": 137,
+            "window": 56127,
+            "type": 2,
+            "time": 409865.70049608336,
+            "x": 84.166748046875
+          },
+          {
+            "y": 137,
+            "window": 56128,
+            "x": 84.166748046875,
+            "type": 1,
+            "time": 409865.72105362505
+          },
+          {
+            "y": 137,
+            "time": 409865.7236559167,
+            "window": 56128,
+            "type": 2,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "x": 350.833251953125,
+            "window": 56127,
+            "y": 137,
+            "time": 409865.74681733333
+          },
+          {
+            "type": 2,
+            "y": 137,
+            "window": 56127,
+            "x": 350.833251953125,
+            "time": 409865.74881895835
+          }
+        ],
+        "mouseDowns": 3,
+        "pid": 12885,
+        "times": [
+          409865.70271829166,
+          409865.7257004167,
+          409865.75054491666
+        ],
+        "windows": [
+          {
+            "visible": true,
+            "title": "Tandem Loop Target 1",
+            "id": 56127,
+            "points": [
+              [
+                2435.1666666666665,
+                -224
+              ],
+              [
+                2568.5,
+                -224
+              ],
+              [
+                2701.8333333333335,
+                -224
+              ]
+            ],
+            "minimized": false
+          },
+          {
+            "minimized": false,
+            "visible": true,
+            "title": "Tandem Loop Target 2",
+            "points": [
+              [
+                2899.1666666666665,
+                -224
+              ],
+              [
+                3032.5,
+                -224
+              ],
+              [
+                3165.8333333333335,
+                -224
+              ]
+            ],
+            "id": 56128
+          }
+        ],
+        "fullscreen": false,
+        "counts": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "order": [
+          "0:0",
+          "1:0",
+          "0:2"
+        ],
+        "lastCommand": "{\"action\": \"reset\", \"nonce\": \"e2e7dc939e484b479cfc35cf481493ef\"}"
+      },
+      "Background burst 2_actual": {
+        "events": [
+          {
+            "type": 1,
+            "y": 137,
+            "window": 56127,
+            "x": 84.166748046875,
+            "time": 409866.6759379167
+          },
+          {
+            "y": 137,
+            "time": 409866.6787172917,
+            "window": 56127,
+            "type": 2,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "x": 84.166748046875,
+            "window": 56128,
+            "y": 137,
+            "time": 409866.70439233334
+          },
+          {
+            "y": 137,
+            "window": 56128,
+            "type": 2,
+            "time": 409866.7065654584,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "window": 56127,
+            "time": 409866.729948375,
+            "x": 350.833251953125,
+            "y": 137
+          },
+          {
+            "type": 2,
+            "window": 56127,
+            "x": 350.833251953125,
+            "y": 137,
+            "time": 409866.7317514167
+          }
+        ],
+        "mouseDowns": 3,
+        "pid": 12885,
+        "times": [
+          409866.6811785417,
+          409866.70841870835,
+          409866.732974375
+        ],
+        "windows": [
+          {
+            "minimized": false,
+            "visible": true,
+            "title": "Tandem Loop Target 1",
+            "points": [
+              [
+                2435.1666666666665,
+                -224
+              ],
+              [
+                2568.5,
+                -224
+              ],
+              [
+                2701.8333333333335,
+                -224
+              ]
+            ],
+            "id": 56127
+          },
+          {
+            "title": "Tandem Loop Target 2",
+            "minimized": false,
+            "visible": true,
+            "id": 56128,
+            "points": [
+              [
+                2899.1666666666665,
+                -224
+              ],
+              [
+                3032.5,
+                -224
+              ],
+              [
+                3165.8333333333335,
+                -224
+              ]
+            ]
+          }
+        ],
+        "fullscreen": false,
+        "counts": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "order": [
+          "0:0",
+          "1:0",
+          "0:2"
+        ],
+        "lastCommand": "{\"action\": \"reset\", \"nonce\": \"d809781bee1041ef91338ade415077e4\"}"
+      },
+      "Background burst 3_actual": {
+        "events": [
+          {
+            "type": 1,
+            "window": 56127,
+            "time": 409867.73317587504,
+            "x": 84.166748046875,
+            "y": 137
+          },
+          {
+            "y": 137,
+            "window": 56127,
+            "type": 2,
+            "time": 409867.73554850003,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "window": 56128,
+            "x": 84.166748046875,
+            "y": 137,
+            "time": 409867.7551416667
+          },
+          {
+            "y": 137,
+            "time": 409867.75767433335,
+            "window": 56128,
+            "type": 2,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "y": 137,
+            "window": 56127,
+            "x": 350.833251953125,
+            "time": 409867.78307008336
+          },
+          {
+            "time": 409867.7851835834,
+            "window": 56127,
+            "type": 2,
+            "x": 350.833251953125,
+            "y": 137
+          }
+        ],
+        "mouseDowns": 3,
+        "pid": 12885,
+        "times": [
+          409867.7373632084,
+          409867.75993062503,
+          409867.7869105834
+        ],
+        "windows": [
+          {
+            "title": "Tandem Loop Target 1",
+            "minimized": false,
+            "visible": true,
+            "id": 56127,
+            "points": [
+              [
+                2435.1666666666665,
+                -224
+              ],
+              [
+                2568.5,
+                -224
+              ],
+              [
+                2701.8333333333335,
+                -224
+              ]
+            ]
+          },
+          {
+            "minimized": false,
+            "id": 56128,
+            "visible": true,
+            "title": "Tandem Loop Target 2",
+            "points": [
+              [
+                2899.1666666666665,
+                -224
+              ],
+              [
+                3032.5,
+                -224
+              ],
+              [
+                3165.8333333333335,
+                -224
+              ]
+            ]
+          }
+        ],
+        "fullscreen": false,
+        "counts": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "order": [
+          "0:0",
+          "1:0",
+          "0:2"
+        ],
+        "lastCommand": "{\"action\": \"reset\", \"nonce\": \"83a1514ce3b94125a154e892339ce82c\"}"
+      },
+      "Moved-window burst_actual": {
+        "events": [
+          {
+            "time": 409868.77543783333,
+            "window": 56127,
+            "type": 1,
+            "x": 84.166748046875,
+            "y": 137
+          },
+          {
+            "y": 137,
+            "time": 409868.77785866667,
+            "window": 56127,
+            "type": 2,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "y": 137,
+            "window": 56128,
+            "x": 84.166748046875,
+            "time": 409868.80260345835
+          },
+          {
+            "y": 137,
+            "window": 56128,
+            "type": 2,
+            "time": 409868.8055162917,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "window": 56127,
+            "time": 409868.82854308333,
+            "x": 350.833251953125,
+            "y": 137
+          },
+          {
+            "type": 2,
+            "x": 350.833251953125,
+            "window": 56127,
+            "y": 137,
+            "time": 409868.8313202084
+          }
+        ],
+        "mouseDowns": 3,
+        "pid": 12885,
+        "times": [
+          409868.77964220836,
+          409868.8076232084,
+          409868.833085125
+        ],
+        "windows": [
+          {
+            "title": "Tandem Loop Target 1",
+            "minimized": false,
+            "visible": true,
+            "id": 56127,
+            "points": [
+              [
+                2515.1666666666665,
+                -249
+              ],
+              [
+                2648.5,
+                -249
+              ],
+              [
+                2781.8333333333335,
+                -249
+              ]
+            ]
+          },
+          {
+            "visible": true,
+            "title": "Tandem Loop Target 2",
+            "id": 56128,
+            "points": [
+              [
+                2899.1666666666665,
+                -224
+              ],
+              [
+                3032.5,
+                -224
+              ],
+              [
+                3165.8333333333335,
+                -224
+              ]
+            ],
+            "minimized": false
+          }
+        ],
+        "fullscreen": false,
+        "counts": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "order": [
+          "0:0",
+          "1:0",
+          "0:2"
+        ],
+        "lastCommand": "{\"action\": \"reset\", \"nonce\": \"fef4a1e982304de2a7a478ef3f3f0852\"}"
+      },
+      "foreground": {
+        "events": [
+          {
+            "type": 1,
+            "x": 84.166748046875,
+            "window": 56127,
+            "y": 137,
+            "time": 409869.77894825005
+          },
+          {
+            "y": 137,
+            "window": 56127,
+            "type": 2,
+            "time": 409869.78874025005,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "window": 56128,
+            "time": 409869.7955755,
+            "x": 84.166748046875,
+            "y": 137
+          },
+          {
+            "y": 137,
+            "time": 409869.79673495836,
+            "window": 56128,
+            "type": 2,
+            "x": 84.166748046875
+          },
+          {
+            "type": 1,
+            "y": 137,
+            "window": 56127,
+            "x": 350.833251953125,
+            "time": 409869.8122960834
+          },
+          {
+            "y": 137,
+            "window": 56127,
+            "x": 350.833251953125,
+            "type": 2,
+            "time": 409869.81550025
+          }
+        ],
+        "mouseDowns": 3,
+        "pid": 12885,
+        "times": [
+          409869.7892666667,
+          409869.79711695836,
+          409869.8159239584
+        ],
+        "windows": [
+          {
+            "minimized": false,
+            "visible": true,
+            "title": "Tandem Loop Target 1",
+            "points": [
+              [
+                2515.1666666666665,
+                -249
+              ],
+              [
+                2648.5,
+                -249
+              ],
+              [
+                2781.8333333333335,
+                -249
+              ]
+            ],
+            "id": 56127
+          },
+          {
+            "visible": true,
+            "title": "Tandem Loop Target 2",
+            "id": 56128,
+            "points": [
+              [
+                2899.1666666666665,
+                -224
+              ],
+              [
+                3032.5,
+                -224
+              ],
+              [
+                3165.8333333333335,
+                -224
+              ]
+            ],
+            "minimized": false
+          }
+        ],
+        "fullscreen": false,
+        "counts": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "order": [
+          "0:0",
+          "1:0",
+          "0:2"
+        ],
+        "lastCommand": "{\"action\": \"reset\", \"nonce\": \"ad99158134704d9588bf1876bc2d7d5c\"}"
+      },
+      "foreground_span_ms": 26.657291688024998,
+      "two_rounds": {
+        "order": [
+          "0:0",
+          "1:0",
+          "0:2",
+          "0:0",
+          "1:0",
+          "0:2"
+        ],
+        "times": [
+          409873.1516746667,
+          409873.17576175,
+          409873.2018915417,
+          409873.57218820835,
+          409873.6058987917,
+          409873.64216875
+        ],
+        "gap_ms": 370.2966666314751
+      }
+    }
+  },
+  "timing_definition": "Target-app acknowledged clicks: elapsed from first to last action within one burst. Preparation and launch latency are separate. Native pass tolerance was <200ms for the requested ~100ms burst; actual tested background spans were 48-53ms and foreground 27ms.",
+  "delivery": "Current-Space background bursts use exact-window NSEvent/CGEvent delivery with a dynamically resolved CGEventSetWindowLocation compatibility symbol. This CoreGraphics symbol is not public API. When unavailable, Accessibility delivery remains available; fast events mode reports unsupported rather than claiming a successful burst. Inactive-Space Accessibility presses and app-specific handlers can run slower.",
+  "initial_failures_and_fixes": [
+    "Accessibility button presses serialized native animations, exceeding the burst target. Current-Space bursts use fast balanced window-routed events.",
+    "Raw pid-routed CG events arrived with window number zero. NSEvent creation supplies the explicit target window number.",
+    "Global and window-local event locations must be populated separately on multiple displays. A native probe confirmed the optional CoreGraphics bridge, followed by installed-app verification.",
+    "Switching an already-used multi-point picker to one-shot mode ignored the next point because the previous capture count remained nonzero. Arming one-shot resets its count; re-pick was verified by changed coordinates and resulting click order.",
+    "The automated Escape key did not finish the HID picker reliably; native QA now uses Finish directly."
+  ],
+  "cleanup": "Temporary fixture apps quit; only Repeat settings changed by testing restored; no QA macros created; no clipboard contents read or modified."
+}

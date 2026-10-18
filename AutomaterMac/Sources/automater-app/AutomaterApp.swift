@@ -220,6 +220,11 @@ final class AppState: ObservableObject {
     @Published var deliveryMode: ClickerConfig.DeliveryMode = .accessibility
 
     @Published var multipoints: [PointSpec] = []
+    @Published var multipointBurst = false
+    /// Row being re-picked (replace-in-place); nil when picking appends.
+    /// Transient UI state, never persisted.
+    @Published var repickIndex: Int?
+    private var pointCaptureID = UUID()
     @Published var status = "Idle"
     @Published var isClicking = false
 
@@ -286,22 +291,33 @@ final class AppState: ObservableObject {
         }
 
         pointPicker.onPoint = { [weak self] loc in
+            let replacementIndex = self?.repickIndex
+            let captureID = self?.pointCaptureID
             Task { @MainActor in
-                guard let self else { return }
+                guard let self, self.pointCaptureID == captureID else { return }
                 let spec = self.pointSpec(at: loc)
-                self.multipoints.append(spec)
-                self.status = "Picked \(self.multipoints.count): (\(Int(loc.x)), \(Int(loc.y)))"
+                if let index = replacementIndex, self.multipoints.indices.contains(index) {
+                    self.multipoints[index] = spec
+                    self.status = "Point \(index + 1) moved to (\(Int(loc.x)), \(Int(loc.y)))"
+                    self.repickIndex = nil
+                } else {
+                    self.multipoints.append(spec)
+                    self.status = "Picked \(self.multipoints.count): (\(Int(loc.x)), \(Int(loc.y)))"
+                }
             }
         }
         pointPicker.onFinish = { [weak self] finished in
+            let wasReplacing = self?.pointPicker.singleShot == true
             Task { @MainActor in
                 guard let self else { return }
                 NSApp.unhide(nil)
                 self.isPicking = false
-                if finished {
+                self.repickIndex = nil
+                self.pointPicker.singleShot = false
+                if finished && !wasReplacing {
                     let n = self.multipoints.count
                     self.status = n == 0 ? "Picking ended — no points" : "\(n) point\(n == 1 ? "" : "s") picked"
-                } else {
+                } else if !finished {
                     self.status = "Point picking needs Accessibility"
                 }
             }
@@ -391,6 +407,7 @@ final class AppState: ObservableObject {
         deliveryMode = ClickerConfig.DeliveryMode(
             rawValue: s["delivery_mode"] as? String ?? "accessibility"
         ) ?? .accessibility
+        multipointBurst = s["repeat_multipoint_burst"] as? Bool ?? false
     }
 
     func persistSettings() {
@@ -409,6 +426,7 @@ final class AppState: ObservableObject {
         s["macro_background"] = macroBackgroundPlayback
         s["background_to_app"] = backgroundToApp
         s["delivery_mode"] = deliveryMode.rawValue
+        s["repeat_multipoint_burst"] = multipointBurst
         Storage.saveSettings(s)
     }
 
@@ -459,6 +477,7 @@ final class AppState: ObservableObject {
             }
         }
         config.multipoints = multipoints
+        config.multipointBurst = multipointBurst
         config.backgroundToApp = backgroundToApp
         config.deliveryMode = deliveryMode
         return config
@@ -591,6 +610,9 @@ final class AppState: ObservableObject {
             return PointSpec(x: Int(location.x), y: Int(location.y), pid: targetWindow.map { Int($0.pid) })
         }
         if targetWindow == nil { setTarget(window) }
+        AXBridge.enqueuePrimeWindowCache(windowNumber: window.windowId, pid: window.pid,
+                                         bundleId: window.bundleId, ownerName: window.ownerName,
+                                         title: window.title, at: location, windowBounds: window.bounds)
         return PointSpec(x: Int(location.x), y: Int(location.y), coordSpace: .window,
                          localX: location.x - window.bounds.minX, localY: location.y - window.bounds.minY,
                          appBundleId: window.bundleId, appName: window.ownerName,
@@ -725,6 +747,7 @@ final class AppState: ObservableObject {
     func togglePicking() {
         if isPicking {
             pointPicker.stop(finished: true)
+            repickIndex = nil
             return
         }
         guard AXBridge.isTrustedForAccessibility else {
@@ -732,6 +755,8 @@ final class AppState: ObservableObject {
             AXBridge.requestAccessibilityPrompt()
             return
         }
+        pointCaptureID = UUID()
+        pointPicker.singleShot = repickIndex != nil
         pointPicker.start()
         isPicking = pointPicker.active
         if isPicking {
@@ -740,18 +765,41 @@ final class AppState: ObservableObject {
     }
 
     private func endPicking() {
+        pointCaptureID = UUID()
         if isPicking { pointPicker.stop(finished: true) }
+        repickIndex = nil
     }
 
     func addPointAtCursor() {
-        let spec = pointSpec(at: EventPoster.cursorLocation)
+        let loc = EventPoster.cursorLocation
+        let spec = pointSpec(at: loc)
         let px = spec.x ?? 0
         let py = spec.y ?? 0
-        multipoints.append(spec)
-        status = "Point \(multipoints.count) at (\(px), \(py))"
+        if let index = repickIndex, multipoints.indices.contains(index) {
+            multipoints[index] = spec
+            status = "Point \(index + 1) moved to (\(px), \(py))"
+            repickIndex = nil
+            endPicking()
+        } else {
+            multipoints.append(spec)
+            status = "Point \(multipoints.count) at (\(px), \(py))"
+        }
+    }
+
+    /// Arm a one-shot replace of the point at index: the next picked (or
+    /// grabbed) point moves it in place, keeping the rest of the list.
+    func repickPoint(at index: Int) {
+        guard multipoints.indices.contains(index) else { return }
+        guard !isClicking, !isRecording, !playingMacro else { return }
+        repickIndex = index
+        if isPicking { pointPicker.singleShot = true }
+        else { togglePicking() }
+        if !isPicking { repickIndex = nil }
+        status = "Click where point \(index + 1) should move"
     }
 
     func removeSelectedPoints(at offsets: IndexSet) {
+        endPicking()
         multipoints.remove(atOffsets: offsets)
     }
 

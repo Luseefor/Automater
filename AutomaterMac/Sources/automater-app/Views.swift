@@ -349,6 +349,7 @@ struct ClickerView: View {
     }
 
     private var isKeyboard: Bool { state.repeatAction == .keyPress }
+    private var isBurst: Bool { !isKeyboard && state.mode == .multipoint && state.multipointBurst }
 
     var body: some View {
         ScrollView {
@@ -369,7 +370,7 @@ struct ClickerView: View {
                     } else {
                         mouseControls
                     }
-                    PanelRow("Interval") {
+                    PanelRow(isBurst ? "Between rounds" : "Interval") {
                         TextField("Interval", value: intervalValueBinding,
                                   format: .number.grouping(.never).precision(.fractionLength(0...6)))
                             .frame(minWidth: 60, maxWidth: .infinity)
@@ -381,7 +382,7 @@ struct ClickerView: View {
                                     options: IntervalUnit.allCases.map { ($0.label, $0) })
                             .frame(width: 88)
                     }
-                    PanelRow("Repeat") {
+                    PanelRow(isBurst ? "Rounds" : "Repeat") {
                         PanelChoice(label: "Repeat", selection: finiteRepeatBinding,
                                     options: [("Until stopped", false), ("Count", true)])
                         if state.repeatCount > 0 {
@@ -501,7 +502,16 @@ struct ClickerView: View {
                 Button(state.isPicking ? "Finish" : "Pick Points…") { state.togglePicking() }
                     .disabled(state.isRecording)
                     .help("Click target points, then press Escape or Finish")
-                Button("Clear") { state.multipoints.removeAll() }.disabled(state.multipoints.isEmpty)
+                Button("Clear") { state.multipoints.removeAll() }
+                    .disabled(state.multipoints.isEmpty || state.isPicking)
+            }
+            PanelRow("Timing") {
+                PanelChoice(label: "Multi-point timing", selection: $state.multipointBurst,
+                            options: [("Sequential", false), ("Burst ~100ms", true)])
+            }
+            if state.repickIndex != nil {
+                Text("Click where the point should move — Finish cancels")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             if !state.multipoints.isEmpty {
                 ScrollView {
@@ -510,11 +520,19 @@ struct ClickerView: View {
                             HStack {
                                 Text("\(index + 1)").foregroundStyle(.secondary).frame(width: 20)
                                 Text("\(point.x ?? 0), \(point.y ?? 0)").monospacedDigit()
+                                    .accessibilityIdentifier("mouse-point-\(index)-coordinates")
                                 Spacer()
+                                Button { state.repickPoint(at: index) } label: {
+                                    Image(systemName: state.repickIndex == index ? "mappin.circle.fill" : "mappin.circle")
+                                }.buttonStyle(.borderless)
+                                    .disabled(state.isRecording)
+                                    .help("Re-pick point \(index + 1) in place")
+                                    .accessibilityLabel("Re-pick point \(index + 1)")
                                 Button { state.multipoints.remove(at: index) } label: {
                                     Image(systemName: "minus.circle")
                                 }.buttonStyle(.borderless)
                                     .accessibilityLabel("Remove point \(index + 1)")
+                                    .disabled(state.isPicking)
                             }
                         }
                     }

@@ -30,8 +30,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleName</key><string>Tandem</string>
   <key>CFBundleDisplayName</key><string>Tandem</string>
   <key>CFBundleIdentifier</key><string>com.luseefor.automater</string>
-  <key>CFBundleVersion</key><string>0.3.4</string>
-  <key>CFBundleShortVersionString</key><string>0.3.4</string>
+  <key>CFBundleVersion</key><string>0.3.5</string>
+  <key>CFBundleShortVersionString</key><string>0.3.5</string>
   <key>CFBundleExecutable</key><string>Automater</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
