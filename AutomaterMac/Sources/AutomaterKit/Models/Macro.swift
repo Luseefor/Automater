@@ -100,6 +100,10 @@ public struct PointSpec: Codable, Equatable, Sendable {
 
 /// Full clicker run configuration handed to the engine.
 public struct ClickerConfig: Sendable, Equatable {
+    public enum Action: String, CaseIterable, Sendable {
+        case mouseClick, keyPress
+    }
+
     public enum Mode: String, Sendable {
         case currentCursor, fixedPoint, multipoint
     }
@@ -111,6 +115,8 @@ public struct ClickerConfig: Sendable, Equatable {
     }
 
     public var intervalMs: Int
+    public var action: Action
+    public var keyCombo: String
     public var jitterMs: Int
     public var button: MouseButton
     public var clickKind: ClickKind
@@ -156,9 +162,13 @@ public struct ClickerConfig: Sendable, Equatable {
         windowTitle: String? = nil,
         multipoints: [PointSpec] = [],
         backgroundToApp: Bool = false,
-        deliveryMode: DeliveryMode = .events
+        deliveryMode: DeliveryMode = .events,
+        action: Action = .mouseClick,
+        keyCombo: String = "space"
     ) {
         self.intervalMs = intervalMs
+        self.action = action
+        self.keyCombo = keyCombo
         self.jitterMs = jitterMs
         self.button = button
         self.clickKind = clickKind

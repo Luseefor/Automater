@@ -22,13 +22,25 @@ public actor ClickerEngine {
     public private(set) var clicksPerformed = 0
 
     private var task: Task<Void, Never>?
+    private var runID = UUID()
     private let poster = EventPoster()
-    // Per-target delivery memory: keys (bundle ids) whose AX tier ignored us.
-    private var deliveryMemory: [String: String] = [:]
-    private var axSkip: Set<String> = []
-    private var targetKeys: [pid_t: String] = [:]
+    private var postMouse: (@Sendable (CGPoint, ResolvedTarget, ClickerConfig) -> Void)?
+    private var cursorLocation: @Sendable () -> CGPoint = { EventPoster.cursorLocation }
+    private let postKey: @Sendable (String, pid_t?) -> Bool
+    public init() {
+        postKey = { EventPoster().keyCombo($0, pid: $1) }
+    }
 
-    public init() {}
+    init(postKey: @escaping @Sendable (String, pid_t?) -> Bool) {
+        self.postKey = postKey
+    }
+
+    init(postMouse: @escaping @Sendable (CGPoint, ResolvedTarget, ClickerConfig) -> Void,
+         cursorLocation: @escaping @Sendable () -> CGPoint = { EventPoster.cursorLocation }) {
+        self.postMouse = postMouse
+        self.cursorLocation = cursorLocation
+        postKey = { EventPoster().keyCombo($0, pid: $1) }
+    }
 
     public nonisolated var isBusy: Bool {
         get async { await isRunning }
@@ -39,33 +51,40 @@ public actor ClickerEngine {
         onStatus: @escaping @Sendable (String) -> Void = { _ in }
     ) {
         stop(silent: true)
+        if config.action == .keyPress, KeyChord(config.keyCombo) == nil {
+            onStatus("Choose a valid key or shortcut")
+            return
+        }
         clicksPerformed = 0
         isRunning = true
-        deliveryMemory = Storage.loadDeliveryMemory()
-        axSkip = Set(deliveryMemory.filter { $0.value == "events" }.keys)
-        targetKeys = [:]
-        onStatus("Clicker ON" + (config.backgroundToApp ? " (background app)" : ""))
+        let runID = UUID()
+        self.runID = runID
+        let name = config.action == .keyPress ? "Keyboard repeat" : "Clicker"
+        onStatus(name + " ON" + (config.backgroundToApp ? " (background app)" : ""))
 
         task = Task { [weak self] in
-            await self?.runLoop(config: config, onStatus: onStatus)
-            onStatus("Clicker OFF")
             guard let self else { return }
-            await self.finish()
+            let error = await self.runLoop(config: config, onStatus: onStatus)
+            await self.finish(runID: runID, status: error ?? name + " OFF", onStatus: onStatus)
         }
     }
 
     public func stop(silent: Bool = false) {
         task?.cancel()
         task = nil
+        runID = UUID()
         if isRunning {
             isRunning = false
             if !silent { /* status emitted by loop teardown */ }
         }
     }
 
-    private func finish() {
+    private func finish(runID: UUID, status: String,
+                        onStatus: @Sendable (String) -> Void) {
+        guard self.runID == runID else { return }
         isRunning = false
         task = nil
+        onStatus(status)
     }
 
     // MARK: - Loop
@@ -73,11 +92,14 @@ public actor ClickerEngine {
     private func runLoop(
         config: ClickerConfig,
         onStatus: @escaping @Sendable (String) -> Void
-    ) async {
+    ) async -> String? {
         let baseInterval = Double(max(1, config.intervalMs)) / 1000.0
         var done = 0
         var pointIndex = 0
         var didWarmUp = false
+        // A background run never follows the user's live pointer.
+        let initialPoint = config.action == .mouseClick && config.mode == .currentCursor
+            && config.backgroundToApp ? cursorLocation() : nil
         // Report each distinct delivery issue once per session (no spam).
         var reportedIssues: Set<String> = []
         func reportOnce(_ msg: String) {
@@ -92,100 +114,153 @@ public actor ClickerEngine {
             do {
                 try Task.checkCancellation()
 
-                var resolvedPoint: CGPoint?
-                var bgTarget = ResolvedTarget.none
-
-                switch config.mode {
-                case .currentCursor:
-                    let loc = EventPoster.cursorLocation
-                    resolvedPoint = CGPoint(x: loc.x, y: loc.y)
-                    if config.backgroundToApp {
-                        bgTarget = Self.resolveBackgroundTarget(
-                            pid: config.targetPid,
-                            bundleId: config.appBundleId,
-                            appName: config.appName,
-                            title: config.windowTitle,
-                            windowId: config.targetWindowId
-                        )
-                        if bgTarget.pid == nil {
-                            onStatus("Background target not found")
-                        }
+                if config.action == .keyPress {
+                    if config.backgroundToApp && config.targetPid == nil && config.appBundleId == nil
+                        && config.appName == nil && config.targetWindowId == nil {
+                        return "Choose a background target before starting keyboard repeat"
                     }
+                    let target = config.backgroundToApp ? Self.resolveBackgroundTarget(
+                        pid: config.targetPid, bundleId: config.appBundleId,
+                        appName: config.appName, title: config.windowTitle,
+                        windowId: config.targetWindowId
+                    ) : .none
+                    if config.backgroundToApp && target.pid == nil {
+                        return "Background target not found — keyboard repeat stopped"
+                    }
+                    guard postKey(config.keyCombo, target.pid) else {
+                        return "Unable to send keyboard shortcut"
+                    }
+                } else {
+                    var resolvedPoint: CGPoint?
+                    var bgTarget = ResolvedTarget.none
+                    var selectedSpec: PointSpec?
 
-                case .fixedPoint:
-                    if let p = Self.resolveFixedPoint(config: config) {
-                        resolvedPoint = p.point
+                    switch config.mode {
+                    case .currentCursor:
+                        let loc = initialPoint ?? cursorLocation()
+                        resolvedPoint = CGPoint(x: loc.x, y: loc.y)
                         if config.backgroundToApp {
                             bgTarget = Self.resolveBackgroundTarget(
                                 pid: config.targetPid,
                                 bundleId: config.appBundleId,
                                 appName: config.appName,
                                 title: config.windowTitle,
-                                windowId: config.targetWindowId ?? config.fixedWindowId
+                                windowId: config.targetWindowId
                             )
-                            if bgTarget.pid == nil {
-                                onStatus("Background target not found")
+                        }
+
+                    case .fixedPoint:
+                        if let p = Self.resolveFixedPoint(config: config) {
+                            resolvedPoint = p.point
+                            if config.backgroundToApp {
+                                bgTarget = Self.resolveBackgroundTarget(
+                                    pid: config.targetPid,
+                                    bundleId: config.appBundleId,
+                                    appName: config.appName,
+                                    title: config.windowTitle,
+                                    windowId: config.targetWindowId ?? config.fixedWindowId
+                                )
                             }
+                        } else {
+                            return "Target window not found — clicking stopped"
                         }
-                    } else {
-                        onStatus("Target window not found")
-                    }
 
-                case .multipoint:
-                    guard !config.multipoints.isEmpty else {
-                        onStatus("No multi-points set")
-                        break
-                    }
-                    let spec = config.multipoints[pointIndex % config.multipoints.count]
-                    pointIndex += 1
-                    if let p = Self.resolvePointSpec(spec) {
-                        resolvedPoint = p.point
-                        if config.backgroundToApp {
-                        bgTarget = Self.resolveBackgroundTarget(
-                            pid: spec.pid ?? config.targetPid,
-                            bundleId: spec.appBundleId ?? config.appBundleId,
-                            appName: spec.appName ?? config.appName,
-                            title: spec.windowTitle ?? config.windowTitle,
-                            windowId: spec.windowId ?? config.targetWindowId
-                        )
-                            if bgTarget.pid == nil {
-                                onStatus("Background target not found")
+                    case .multipoint:
+                        guard !config.multipoints.isEmpty else {
+                            return "No multi-points set"
+                        }
+                        let spec = config.multipoints[pointIndex % config.multipoints.count]
+                        pointIndex += 1
+                        selectedSpec = spec
+                        if let p = Self.resolvePointSpec(spec) {
+                            resolvedPoint = p.point
+                            if config.backgroundToApp {
+                                bgTarget = Self.resolveBackgroundTarget(
+                                    pid: spec.pid ?? config.targetPid,
+                                    bundleId: spec.appBundleId ?? config.appBundleId,
+                                    appName: spec.appName ?? config.appName,
+                                    title: spec.windowTitle ?? config.windowTitle,
+                                    windowId: spec.windowId ?? config.targetWindowId
+                                )
                             }
+                        } else {
+                            return "Target window not found — clicking stopped"
                         }
-                    } else {
-                        onStatus("Target window not found")
                     }
-                }
 
-                guard let point = resolvedPoint else {
-                    try await Task.sleep(nanoseconds: 200_000_000)
-                    continue
-                }
-
-                // Chromium-family apps build their AX tree lazily on first
-                // query; poke until an element resolves (max ~3s) so neither
-                // AX presses nor event routing get swallowed. The flags are
-                // safe for native apps too (verified: Calculator keeps its
-                // tree) — the poke must always run or lazy trees never build.
-                if config.backgroundToApp, let pid = bgTarget.pid, !didWarmUp {
-                    didWarmUp = true
-                    if !AXBridge.hasAXWindows(appPID: pid) {
-                        reportOnce("Target exposes no accessibility — if clicks don't land, turn off background delivery")
+                    if config.backgroundToApp && bgTarget.pid == nil {
+                        return "Background target not found — clicking stopped"
                     }
-                    AXBridge.enableAccessibility(appPID: pid)
-                    for _ in 0..<20 {
-                        if AXBridge.hasElementAt(appPID: pid, x: point.x, y: point.y) {
-                            break
+                    guard var point = resolvedPoint else {
+                        return "Click point not found — clicking stopped"
+                    }
+
+                    // Chromium-family apps build their AX tree lazily on first
+                    // query; poke until an element resolves (max ~3s) so neither
+                    // AX presses nor event routing get swallowed. The flags are
+                    // safe for native apps too (verified: Calculator keeps its
+                    // tree) — the poke must always run or lazy trees never build.
+                    if postMouse == nil, config.backgroundToApp, let pid = bgTarget.pid, !didWarmUp {
+                        didWarmUp = true
+                        if !AXBridge.hasAXWindows(appPID: pid) {
+                            reportOnce("Target exposes no accessibility — if clicks don't land, turn off background delivery")
                         }
-                        try await Task.sleep(nanoseconds: 150_000_000)
+                        AXBridge.enableAccessibility(appPID: pid)
+                        // Exact cached ref (primed by recording/target pick)
+                        // skips the tree probe: off-Space trees never build.
+                        var skipProbe = false
+                        if config.button == .left,
+                           let wn = bgTarget.windowNumber, let p = resolvedPoint,
+                           let w = WindowScanner.windows(pid: pid, minSize: CGSize(width: 2, height: 2)).first(where: { $0.windowId == wn }),
+                           AXBridge.hasCachedPressable(windowNumber: wn, pid: pid, x: p.x, y: p.y,
+                                                       expectedFrame: w.bounds, bundleId: config.appBundleId,
+                                                       ownerName: config.appName) {
+                            skipProbe = true
+                        }
+                        if !skipProbe {
+                            for _ in 0..<20 {
+                                let bounds: CGRect?
+                                if let id = bgTarget.windowNumber {
+                                    guard let window = WindowScanner.windows(pid: pid, minSize: CGSize(width: 2, height: 2)).first(where: { $0.windowId == id }) else {
+                                        return "Background target window closed — clicking stopped"
+                                    }
+                                    if !window.isOnScreen,
+                                       AXBridge.isWindowMinimized(appPID: pid, windowBounds: window.bounds) == true {
+                                        return "Background target window minimized — restore it, then start again"
+                                    }
+                                    bounds = window.bounds
+                                } else { bounds = nil }
+                                let ready = config.deliveryMode == .accessibility
+                                    ? AXBridge.hasPressableElementAt(appPID: pid, x: point.x, y: point.y, windowBounds: bounds)
+                                    : AXBridge.hasElementAt(appPID: pid, x: point.x, y: point.y)
+                                if ready { break }
+                                try await Task.sleep(nanoseconds: 150_000_000)
+                                try Task.checkCancellation()
+                            }
+                            try await Task.sleep(nanoseconds: 300_000_000)
+                        }
                         try Task.checkCancellation()
                     }
-                    try await Task.sleep(nanoseconds: 300_000_000)
-                    try Task.checkCancellation()
-                }
 
-                deliver(point: point, target: bgTarget, config: config,
-                        report: reportOnce)
+                    if config.backgroundToApp, let id = bgTarget.windowNumber {
+                        guard let window = WindowScanner.windows(pid: bgTarget.pid, minSize: CGSize(width: 2, height: 2)).first(where: { $0.windowId == id }) else {
+                            return "Background target window closed — clicking stopped"
+                        }
+                        if !window.isOnScreen,
+                           AXBridge.isWindowMinimized(appPID: window.pid, windowBounds: window.bounds) == true {
+                            return "Background target window minimized — restore it, then start again"
+                        }
+                        // Warm-up can suspend this task. Reapply local offsets
+                        // to the live frame immediately before sending input.
+                        if config.mode == .fixedPoint && config.fixedCoordSpace == .window {
+                            point = Self.localToScreen(localX: config.fixedLocalX, localY: config.fixedLocalY, in: window)
+                        } else if let spec = selectedSpec, spec.coordSpace == .window {
+                            point = Self.localToScreen(localX: spec.localX ?? 0, localY: spec.localY ?? 0, in: window)
+                        }
+                    }
+                    if let postMouse { postMouse(point, bgTarget, config) }
+                    else if let error = deliver(point: point, target: bgTarget, config: config, report: reportOnce) { return error }
+                }
                 clicksPerformed += 1
                 done += 1
             } catch is CancellationError {
@@ -196,6 +271,8 @@ public actor ClickerEngine {
                 onStatus("Clicker error: \(error.localizedDescription)")
                 break
             }
+
+            if config.repeatCount > 0 && done >= config.repeatCount { break }
 
             // Interval with jitter, cancellable. Task.sleep only throws on
             // cancellation here.
@@ -210,34 +287,59 @@ public actor ClickerEngine {
                 break
             }
         }
+        return nil
     }
 
     /// Delivers one click. AX misses (fully-covered windows in AX-hostile
     /// apps) automatically fall back to pid-routed synthetic events.
+    /// Nil on delivery (or AXPress-backed single-press fallback); a message
+    /// when the run must stop. Native double/triple click counts are never
+    /// faked as repeated AXPresses off-Space.
     private func deliver(
         point: CGPoint, target: ResolvedTarget, config: ClickerConfig,
         report: (String) -> Void
-    ) {
-        if config.backgroundToApp, let pid = target.pid {
+    ) -> String? {
+        if config.backgroundToApp {
+            guard let pid = target.pid else { return nil }
+            if config.clickKind.presses > 1, let wn = target.windowNumber,
+               let w = WindowScanner.windows(pid: pid, minSize: CGSize(width: 2, height: 2)).first(where: { $0.windowId == wn }),
+               !w.isOnScreen,
+               !AXBridge.hasQueryableWindow(appPID: pid, x: point.x, y: point.y, windowBounds: w.bounds) {
+                return "Background double/triple click on another Space is not supported — run it on this Space"
+            }
+            // Verified AX support is LEFT clicks only (axClick refuses
+            // right/middle): those would fall through to dropped raw events.
+            if config.button != .left,
+               let w = WindowScanner.windows(pid: pid, minSize: CGSize(width: 2, height: 2)).first(where: { $0.windowId == target.windowNumber }),
+               !w.isOnScreen,
+               !AXBridge.hasQueryableWindow(appPID: pid, x: point.x, y: point.y, windowBounds: w.bounds) {
+                return "Background right/middle click on another Space is not supported — run it on this Space"
+            }
+            // Same honest gate as MacroEngine: off-Space with no live AX
+            // window is unreachable (raw routed events are dropped there).
+            // The cache exception is accessibility-only — .events delivery
+            // never consults it. postMouse-injected tests bypass deliver
+            // entirely, so fake-pid semantics tests are unaffected.
+            if let wn = target.windowNumber,
+               let w = WindowScanner.windows(pid: pid, minSize: CGSize(width: 2, height: 2)).first(where: { $0.windowId == wn }),
+               !w.isOnScreen,
+               !AXBridge.hasQueryableWindow(appPID: pid, x: point.x, y: point.y, windowBounds: w.bounds),
+               !(config.deliveryMode == .accessibility && config.button == .left
+                 && AXBridge.hasCachedPressable(windowNumber: wn, pid: pid, x: point.x, y: point.y,
+                                                expectedFrame: w.bounds, bundleId: config.appBundleId,
+                                                ownerName: config.appName)) {
+                return "Background target is on another Space and cannot be reached — open its window on this Space once, then start again"
+            }
             switch config.deliveryMode {
             case .accessibility:
-                let key = deliveryKey(pid: pid)
-                let landed: Bool
-                if axSkip.contains(key) {
-                    landed = false // remembered: this app ignores AXPress
-                } else {
-                    landed = poster.axClick(x: point.x, y: point.y, pid: pid,
-                                            button: config.button, kind: config.clickKind)
-                }
-                if landed { return }
-                if !axSkip.contains(key) {
-                    // First AX miss for this target: remember it so future
-                    // sessions skip straight to synthetic events.
-                    axSkip.insert(key)
-                    deliveryMemory[key] = "events"
-                    Storage.saveDeliveryMemory(deliveryMemory)
-                    report("Target ignores AX — switching to synthetic events (remembered for this app)")
-                }
+                let landed = poster.axClick(x: point.x, y: point.y, pid: pid,
+                                            button: config.button, kind: config.clickKind,
+                                            windowNumber: target.windowNumber,
+                                            bundleId: config.appBundleId, ownerName: config.appName)
+                if landed { return nil }
+                // An AX miss can be specific to this control or a temporary
+                // layout change. Try AX again next time instead of disabling
+                // it permanently for every window of the app.
                 // Tier 2: route synthetic events into the process — reaches
                 // covered windows that expose no pressable AX elements.
                 let children = AXBridge.hitTestPIDs(appPID: pid, x: point.x, y: point.y)
@@ -250,7 +352,7 @@ public actor ClickerEngine {
                     kind: config.clickKind
                 )
                 Self.log.info("AX unreachable at (\(Int(point.x)),\(Int(point.y))) pid \(pid) — routed synthetic-event fallback")
-                report("Target obscured — using synthetic-event fallback; use foreground delivery if clicks do not land")
+                report("Using window-routed events for this control")
             case .events:
                 let children = AXBridge.hitTestPIDs(appPID: pid, x: point.x, y: point.y)
                 poster.backgroundClick(
@@ -269,15 +371,7 @@ public actor ClickerEngine {
                 kind: config.clickKind
             )
         }
-    }
-
-    /// Stable per-target identity for delivery memory: bundle id when
-    /// available, else the pid (session-only).
-    private func deliveryKey(pid: pid_t) -> String {
-        if let k = targetKeys[pid] { return k }
-        let k = WindowScanner.bundleIdForPID(pid) ?? "pid:\(pid)"
-        targetKeys[pid] = k
-        return k
+        return nil
     }
 
     // MARK: - Point resolution (static: no isolation needed)
@@ -285,12 +379,8 @@ public actor ClickerEngine {
     /// Returns (screenPoint, windowUsedForLocalResolution).
     static func resolveFixedPoint(config: ClickerConfig) -> (point: CGPoint, window: WindowInfo?)? {
         if config.fixedCoordSpace == .window {
-            let window = WindowScanner.findWindow(
-                bundleId: config.appBundleId,
-                appName: config.appName,
-                windowTitle: config.windowTitle,
-                windowId: config.fixedWindowId
-            )
+            let window = pointWindow(bundleId: config.appBundleId, appName: config.appName,
+                                     title: config.windowTitle, windowId: config.fixedWindowId)
             guard let window else { return nil }
             let p = localToScreen(
                 localX: config.fixedLocalX, localY: config.fixedLocalY, in: window
@@ -302,12 +392,8 @@ public actor ClickerEngine {
 
     static func resolvePointSpec(_ spec: PointSpec) -> (point: CGPoint, window: WindowInfo?)? {
         if spec.coordSpace == .window {
-            let window = WindowScanner.findWindow(
-                bundleId: spec.appBundleId,
-                appName: spec.appName,
-                windowTitle: spec.windowTitle,
-                windowId: spec.windowId
-            )
+            let window = pointWindow(bundleId: spec.appBundleId, appName: spec.appName,
+                                     title: spec.windowTitle, windowId: spec.windowId)
             guard let window else { return nil }
             let lx = spec.localX ?? 0
             let ly = spec.localY ?? 0
@@ -323,28 +409,49 @@ public actor ClickerEngine {
         CGPoint(x: window.bounds.minX + localX, y: window.bounds.minY + localY)
     }
 
-    /// Explicit pid wins (verified alive); otherwise identity lookup.
-    public static func resolveBackgroundTarget(
-        pid: Int?,
-        bundleId: String?,
-        appName: String?,
-        title: String?,
-        windowId: Int?
-    ) -> ResolvedTarget {
-        if let pid, pid > 0, kill(pid_t(pid), 0) == 0 {
-            let wins = WindowScanner.windows(pid: pid_t(pid))
-            // Prefer the explicitly targeted window when it belongs to this
-            // pid, so event routing doesn't jump to whichever window happens
-            // to be largest.
-            let winNumber = windowId.flatMap { id in
-                wins.first(where: { $0.windowId == id })?.windowId
-            } ?? wins.first?.windowId ?? windowId
-            return ResolvedTarget(pid: pid_t(pid), windowNumber: winNumber)
+    private static func pointWindow(bundleId: String?, appName: String?, title: String?, windowId: Int?) -> WindowInfo? {
+        if let id = windowId, id > 0 {
+            // No isOnScreen filter: other-Space windows keep valid bounds and
+            // must keep resolving; minimized ones are rejected at run time.
+            // The id must still belong to the recorded app — never resolve a
+            // recycled id owned by another process.
+            return WindowScanner.allWindows(minSize: CGSize(width: 2, height: 2))
+                .first { $0.windowId == id && matchesApp($0, bundleId: bundleId, appName: appName) }
         }
-        if let window = WindowScanner.findWindow(
-            bundleId: bundleId, appName: appName,
-            windowTitle: title, windowId: windowId
-        ) {
+        guard bundleId != nil || appName != nil || title != nil else { return nil }
+        return WindowScanner.findWindow(bundleId: bundleId, appName: appName, windowTitle: title)
+    }
+
+    /// Same app-identity rule as MacroEngine.resolveWindow: a bundle-id (or,
+    /// failing that, an app-name) match is required; with neither given, any
+    /// owner is accepted (legacy pid-only targets).
+    private static func matchesApp(_ window: WindowInfo, bundleId: String?, appName: String?) -> Bool {
+        if let bundleId { return window.bundleId == bundleId }
+        if let appName { return window.ownerName.caseInsensitiveCompare(appName) == .orderedSame }
+        return true
+    }
+
+    /// An explicitly chosen window must still exist. Never redirect a closed
+    /// window's run to another window or the user's foreground app.
+    public static func resolveBackgroundTarget(
+        pid: Int?, bundleId: String?, appName: String?, title: String?, windowId: Int?
+    ) -> ResolvedTarget {
+        if let id = windowId, id > 0 {
+            // No isOnScreen filter: an id on another Space must keep
+            // resolving (same flag value as minimized, distinguished at run
+            // time via AX). A vanished id — or one now owned by another app
+            // — is treated as closed. Never redirect.
+            guard let window = WindowScanner.allWindows(minSize: CGSize(width: 2, height: 2))
+                .first(where: { $0.windowId == id && matchesApp($0, bundleId: bundleId, appName: appName) }),
+                  pid == nil || Int(window.pid) == pid else { return .none }
+            return ResolvedTarget(pid: window.pid, windowNumber: window.windowId)
+        }
+        if let pid {
+            guard pid > 0, kill(pid_t(pid), 0) == 0 else { return .none }
+            return ResolvedTarget(pid: pid_t(pid), windowNumber: WindowScanner.windows(pid: pid_t(pid), minSize: CGSize(width: 2, height: 2)).first?.windowId)
+        }
+        guard bundleId != nil || appName != nil || title != nil else { return .none }
+        if let window = WindowScanner.findWindow(bundleId: bundleId, appName: appName, windowTitle: title) {
             return ResolvedTarget(pid: window.pid, windowNumber: window.windowId)
         }
         return .none
