@@ -13,9 +13,11 @@ public struct WindowInfo: Sendable, Equatable, Identifiable {
     /// Global coordinates, top-left origin.
     public let bounds: CGRect
     public let layer: Int
-    /// Currently composited somewhere (its own Space, visible or covered).
-    /// False for minimized-to-Dock windows — background clicks cannot reach
-    /// those until they're restored onto some Space.
+    /// kCGWindowIsOnscreen from an .optionAll list: false means minimized
+    /// to the Dock OR on an inactive Space (or hidden/occluded). Resolvers
+    /// must not treat it as closed; AX AXMinimized separates the two.
+    /// Background clicks cannot reach minimized windows until restored;
+    /// other-Space windows stay reachable via AX / routed events.
     public let isOnScreen: Bool
 
     public init(
@@ -104,14 +106,17 @@ public enum WindowScanner {
         return out.sorted { $0.area > $1.area }
     }
 
-    /// Filtered lookup, largest-area first.
+    /// Filtered lookup, largest-area first. minSize is 120x80 by default
+    /// (window-picker noise filtering); exact-ID run-time lookups pass 2x2
+    /// so small recorded windows are never misreported as closed.
     public static func windows(
         pid: pid_t? = nil,
         bundleId: String? = nil,
         titleContains: String? = nil,
-        onScreenOnly: Bool = false
+        onScreenOnly: Bool = false,
+        minSize: CGSize = CGSize(width: 120, height: 80)
     ) -> [WindowInfo] {
-        allWindows(onScreenOnly: onScreenOnly).filter { w in
+        allWindows(onScreenOnly: onScreenOnly, minSize: minSize).filter { w in
             if let pid, w.pid != pid { return false }
             if let bundleId, w.bundleId != bundleId { return false }
             if let titleContains, !w.title.localizedCaseInsensitiveContains(titleContains) {
@@ -131,7 +136,12 @@ public enum WindowScanner {
     ) -> WindowInfo? {
         if let windowId,
            let exact = allWindows(minSize: CGSize(width: 2, height: 2))
-           .first(where: { $0.windowId == windowId }) {
+            .first(where: { $0.windowId == windowId }) {
+            // An id now owned by another app is treated as closed — never
+            // fall through to an arbitrary sibling. No id at all still uses
+            // the legacy bundle/name/title fallback below.
+            if let bundleId, exact.bundleId != bundleId { return nil }
+            if let appName, exact.ownerName.caseInsensitiveCompare(appName) != .orderedSame { return nil }
             return exact
         }
 
@@ -162,9 +172,28 @@ public enum WindowScanner {
         return candidates.first
     }
 
+    /// Frontmost content window at a point, preserving the Window Server's
+    /// stacking order rather than the area order used by the window picker.
+    public static func window(at point: CGPoint) -> WindowInfo? {
+        guard let raw = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+            as? [[String: Any]] else { return nil }
+        let windows = Dictionary(uniqueKeysWithValues: allWindows(onScreenOnly: true).map { ($0.windowId, $0) })
+        for entry in raw {
+            if let id = entry[kCGWindowNumber as String] as? Int,
+               let window = windows[id], window.bounds.contains(point) { return window }
+        }
+        return nil
+    }
+
     public static func frontmostWindow() -> WindowInfo? {
         guard let front = NSWorkspace.shared.frontmostApplication else { return nil }
-        return windows(pid: front.processIdentifier, onScreenOnly: true).first
+        let candidates = Dictionary(uniqueKeysWithValues: windows(pid: front.processIdentifier, onScreenOnly: true).map { ($0.windowId, $0) })
+        guard let raw = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+            as? [[String: Any]] else { return nil }
+        for entry in raw {
+            if let id = entry[kCGWindowNumber as String] as? Int, let window = candidates[id] { return window }
+        }
+        return nil
     }
 
     public static func bundleIdForPID(_ pid: pid_t) -> String? {

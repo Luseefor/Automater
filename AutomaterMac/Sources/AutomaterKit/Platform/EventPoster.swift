@@ -177,11 +177,21 @@ public struct EventPoster: Sendable {
         x: Double, y: Double,
         pid: pid_t,
         button: MouseButton = .left,
-        kind: ClickKind = .single
+        kind: ClickKind = .single,
+        windowNumber: Int? = nil,
+        bundleId: String? = nil,
+        ownerName: String? = nil
     ) -> Bool {
+        guard button == .left else { return false }
+        let bounds: CGRect?
+        if let windowNumber {
+            guard let window = WindowScanner.windows(pid: pid, minSize: CGSize(width: 2, height: 2)).first(where: { $0.windowId == windowNumber }) else { return false }
+            bounds = window.bounds
+        } else { bounds = nil }
         var delivered = false
         for _ in 0..<kind.presses {
-            if AXBridge.pressAt(appPID: pid, x: x, y: y) {
+            if AXBridge.pressAt(appPID: pid, x: x, y: y, windowBounds: bounds, windowNumber: windowNumber,
+                                bundleId: bundleId, ownerName: ownerName) {
                 delivered = true
             }
             if kind.presses > 1 {
