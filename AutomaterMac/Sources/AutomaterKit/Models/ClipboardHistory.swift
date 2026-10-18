@@ -45,6 +45,23 @@ public struct ClipboardEntry: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+public enum ClipboardExpiration: Int, CaseIterable, Identifiable, Sendable {
+    case never = 0, fifteenMinutes = 900, oneHour = 3600, oneDay = 86400
+    case sevenDays = 604800, thirtyDays = 2592000
+    public var id: Self { self }
+    public var maxAge: TimeInterval? { self == .never ? nil : TimeInterval(rawValue) }
+    public var title: String {
+        switch self {
+        case .never: return "Never"
+        case .fifteenMinutes: return "15 minutes"
+        case .oneHour: return "1 hour"
+        case .oneDay: return "1 day"
+        case .sevenDays: return "7 days"
+        case .thirtyDays: return "30 days"
+        }
+    }
+}
+
 public struct ClipboardHistory: Codable, Equatable, Sendable {
     public var version = 1
     public var entries: [ClipboardEntry] = []
@@ -54,10 +71,16 @@ public struct ClipboardHistory: Codable, Equatable, Sendable {
         if let previous = entries.first(where: { $0.id == entry.id }) { entry.isPinned = previous.isPinned }
         entries.removeAll { $0.id == entry.id }
         entries.insert(entry, at: 0)
-        while entries.count > max(1, limit) {
-            if let index = entries.lastIndex(where: { !$0.isPinned }) { entries.remove(at: index) }
-            else { break }
+        applyRetention(limit: limit)
+    }
+    /// Pinned items are kept separately from the recent-copy allowance.
+    public mutating func applyRetention(limit: Int, maxAge: TimeInterval? = nil, now: Date = Date()) {
+        if let maxAge {
+            entries.removeAll { !$0.isPinned && now.timeIntervalSince($0.copiedAt) >= maxAge }
         }
+        let newest = entries.filter { !$0.isPinned }.sorted { $0.copiedAt > $1.copiedAt }
+        let keep = Set(newest.prefix(max(1, limit)).map(\.id))
+        entries.removeAll { !$0.isPinned && !keep.contains($0.id) }
     }
     public mutating func clear(keepingPinned: Bool) { entries.removeAll { !keepingPinned || !$0.isPinned } }
 }
@@ -82,6 +105,7 @@ public struct ClipboardRepository: Sendable {
     public func saveImage(_ data: Data, for entry: ClipboardEntry) throws {
         guard let name = entry.imageFilename, name == entry.id + ".png", !name.contains("/") else { return }
         try FileManager.default.createDirectory(at: assets, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: assets.path)
         let url = assets.appendingPathComponent(name)
         try data.write(to: url, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)

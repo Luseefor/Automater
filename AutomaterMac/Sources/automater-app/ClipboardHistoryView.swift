@@ -9,6 +9,7 @@ struct ClipboardHistoryView: View {
     @State private var pinnedOnly = false
     @State private var kind: ClipboardEntry.Kind?
     @State private var confirmClear = false
+    @State private var showRetention = false
     @FocusState private var searchFocused: Bool
     private var items: [ClipboardEntry] {
         clipboard.history.entries.filter { entry in
@@ -29,11 +30,19 @@ struct ClipboardHistoryView: View {
                     .buttonStyle(.borderless).help(clipboard.isPaused ? "Resume clipboard history" : "Pause clipboard history")
                     .accessibilityLabel(clipboard.isPaused ? "Resume clipboard history" : "Pause clipboard history")
                 Menu {
+                    Button("Auto-Cleanup…") { showRetention = true }
+                    Divider()
                     Button("Clear Unpinned Items") { clipboard.clear(keepingPinned: true) }
                     Button("Clear All History…", role: .destructive) { confirmClear = true }
                 } label: { Image(systemName: "ellipsis.circle") }.menuIndicator(.hidden).menuStyle(.borderlessButton).fixedSize()
                     .help("Clipboard options")
                     .accessibilityLabel("Clipboard options")
+                    .popover(isPresented: $showRetention, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 18) {
+                            Text("Auto-Cleanup").font(.headline)
+                            ClipboardRetentionControls(clipboard: clipboard)
+                        }.padding(20).frame(width: 320)
+                    }
             }.font(.system(size: 12)).padding(.horizontal, 20).padding(.vertical, 15)
             HStack(spacing: 7) {
                 filter("All", kind: nil)
@@ -67,7 +76,7 @@ struct ClipboardHistoryView: View {
             Divider()
             HStack(spacing: 7) {
                 Circle().fill(clipboard.isPaused ? Color.orange : Color.green).frame(width: 5, height: 5)
-                Text(pocket.isRunning ? pocket.runStatus : (pocket.toast ?? (clipboard.isPaused ? "History paused" : "\(clipboard.history.entries.count) of \(clipboard.limit) items")))
+                Text(pocket.isRunning ? pocket.runStatus : (pocket.toast ?? (clipboard.isPaused ? "History paused" : "\(clipboard.history.entries.count) items · latest \(clipboard.limit)")))
                     .font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
                 Spacer()
                 if pocket.isRunning {
@@ -86,6 +95,7 @@ struct ClipboardHistoryView: View {
         .onChange(of: query) { _, _ in selectVisibleItem() }
         .onChange(of: kind) { _, _ in selectVisibleItem() }
         .onChange(of: pinnedOnly) { _, _ in selectVisibleItem() }
+        .onChange(of: clipboard.history.entries) { _, _ in selectVisibleItem() }
         .alert("Clipboard", isPresented: Binding(get: { clipboard.error != nil }, set: { if !$0 { clipboard.error = nil } })) {
             Button("OK") { clipboard.error = nil }
         } message: { Text(clipboard.error ?? "") }
@@ -176,8 +186,7 @@ struct ClipboardSettingsPane: View {
             Text("Clipboard History").font(.headline)
             Toggle("Remember copied items", isOn: Binding(get: { !clipboard.isPaused }, set: { clipboard.isPaused = !$0 }))
                 .toggleStyle(.switch).controlSize(.small)
-            Text("Keeps your last 100 text, image, and file copies on this Mac. Pin up to 30 items to keep them in reach.")
-                .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            ClipboardRetentionControls(clipboard: clipboard)
             Divider()
             HStack {
                 Text("Saved items").font(.callout)
@@ -195,6 +204,31 @@ struct ClipboardSettingsPane: View {
             Button("Clear All", role: .destructive) { clipboard.clear(keepingPinned: false) }
             Button("Cancel", role: .cancel) {}
         }
+    }
+}
+
+private struct ClipboardRetentionControls: View {
+    @ObservedObject var clipboard: ClipboardMonitor
+    private var limits: [Int] { Array(Set([5, 10, 20, 50, 100, 200, 500, 1000, clipboard.limit])).sorted() }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Keep latest")
+                Spacer()
+                Picker("Keep latest", selection: $clipboard.limit) {
+                    ForEach(limits, id: \.self) { Text("\($0) copies").tag($0) }
+                }.labelsHidden().frame(width: 150).accessibilityIdentifier("clipboard-retention-limit")
+            }
+            HStack {
+                Text("Remove after")
+                Spacer()
+                Picker("Remove after", selection: $clipboard.expiration) {
+                    ForEach(ClipboardExpiration.allCases) { Text($0.title).tag($0) }
+                }.labelsHidden().frame(width: 150).accessibilityIdentifier("clipboard-retention-age")
+            }
+            Text("Pinned items stay. Changes apply immediately.")
+                .font(.caption).foregroundStyle(.secondary)
+        }.font(.callout)
     }
 }
 

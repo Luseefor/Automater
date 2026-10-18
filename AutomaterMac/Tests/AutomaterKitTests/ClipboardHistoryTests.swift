@@ -16,7 +16,7 @@ final class ClipboardHistoryTests: XCTestCase {
         var history = ClipboardHistory()
         var pinned = ClipboardEntry(text: "Keep me"); pinned.isPinned = true; history.insert(pinned)
         for index in 0..<5 { history.insert(ClipboardEntry(text: "Item \(index)"), limit: 3) }
-        XCTAssertEqual(history.entries.count, 3)
+        XCTAssertEqual(history.entries.count, 4) // 3 newest unpinned + pinned
         XCTAssertTrue(history.entries.contains { $0.id == pinned.id })
         history.clear(keepingPinned: true); XCTAssertEqual(history.entries.count, 1)
         history.clear(keepingPinned: false); XCTAssertTrue(history.entries.isEmpty)
