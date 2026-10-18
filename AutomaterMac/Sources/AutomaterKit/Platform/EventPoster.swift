@@ -6,7 +6,16 @@ import Foundation
 /// the physical pointer.
 public struct EventPoster: Sendable {
 
+    private var eventSink: (@Sendable (CGEvent, pid_t?) -> Void)?
+
     public init() {}
+    init(eventSink: @escaping @Sendable (CGEvent, pid_t?) -> Void) { self.eventSink = eventSink }
+
+    func post(_ event: CGEvent, pid: pid_t? = nil) {
+        if let eventSink { eventSink(event, pid) }
+        else if let pid { event.postToPid(pid) }
+        else { event.post(tap: .cghidEventTap) }
+    }
 
     // MARK: - Mouse
 
@@ -36,11 +45,7 @@ public struct EventPoster: Sendable {
                 .windowUnderMousePointerHandler, value: Int64(windowNumber)
             )
         }
-        if let pid {
-            event.postToPid(pid)
-        } else {
-            event.post(tap: .cghidEventTap)
-        }
+        post(event, pid: pid)
     }
 
     public func postMouseEvent(
@@ -76,11 +81,7 @@ public struct EventPoster: Sendable {
                 .windowUnderMousePointerHandler, value: Int64(windowNumber)
             )
         }
-        if let pid {
-            event.postToPid(pid)
-        } else {
-            event.post(tap: .cghidEventTap)
-        }
+        post(event, pid: pid)
     }
 
     public func moveCursor(
@@ -127,6 +128,7 @@ public struct EventPoster: Sendable {
 
     /// Physically relocates the system pointer (foreground delivery only).
     public func warpCursor(x: Double, y: Double) {
+        guard eventSink == nil else { return }
         CGWarpMouseCursorPosition(CGPoint(x: x, y: y))
         CGAssociateMouseAndMouseCursorPosition(1)
     }
@@ -196,47 +198,39 @@ public struct EventPoster: Sendable {
     @discardableResult
     public func keyCombo(
         _ combo: String,
-        pid: pid_t
+        pid: pid_t?
     ) -> Bool {
-        let parts = combo.split(separator: "+")
-            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
-            .filter { !$0.isEmpty }
-        guard !parts.isEmpty else { return false }
-
-        var modCodes: [UInt16] = []
-        var tail: UInt16?
-        for part in parts {
-            guard let code = KeyCodeMap.keycode(for: part) else { return false }
-            if KeyCodeMap.isModifier(name: part) {
-                modCodes.append(code)
-            } else {
-                tail = code
-            }
+        guard let events = Self.keyboardEvents(for: combo) else { return false }
+        for event in events {
+            if event.type == .keyUp { Thread.sleep(forTimeInterval: 0.008) }
+            post(event, pid: pid)
         }
-        guard let tail else { return false }
-
-        let flags: CGEventFlags = modCodes.reduce(into: CGEventFlags()) { acc, code in
-            acc.insert(Self.flag(forVirtual: code))
-        }
-
-        let source = CGEventSource(stateID: .hidSystemState)
-
-        func post(_ keycode: UInt16, _ down: Bool) {
-            guard let event = CGEvent(
-                keyboardEventSource: source,
-                virtualKey: keycode,
-                keyDown: down
-            ) else { return }
-            if !flags.isEmpty { event.flags = flags }
-            event.postToPid(pid)
-        }
-
-        for code in modCodes { post(code, true) }
-        post(tail, true)
-        Thread.sleep(forTimeInterval: 0.008)
-        post(tail, false)
-        for code in modCodes.reversed() { post(code, false) }
         return true
+    }
+
+    /// Build the complete balanced sequence before sending any of it.
+    static func keyboardEvents(for combo: String) -> [CGEvent]? {
+        guard let chord = KeyChord(combo) else { return nil }
+        let source = CGEventSource(stateID: .hidSystemState)
+        var flags: CGEventFlags = []
+        var events: [CGEvent] = []
+        func append(_ code: UInt16, down: Bool) -> Bool {
+            guard let event = CGEvent(keyboardEventSource: source, virtualKey: code,
+                                      keyDown: down) else { return false }
+            event.flags = flags
+            events.append(event)
+            return true
+        }
+        for code in chord.modifiers {
+            flags.insert(Self.flag(forVirtual: code))
+            guard append(code, down: true) else { return nil }
+        }
+        guard append(chord.key, down: true), append(chord.key, down: false) else { return nil }
+        for code in chord.modifiers.reversed() {
+            flags.remove(Self.flag(forVirtual: code))
+            guard append(code, down: false) else { return nil }
+        }
+        return events
     }
 
     /// Routes either the press or release side of a simple key/chord to a

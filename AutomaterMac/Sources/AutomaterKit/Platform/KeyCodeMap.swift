@@ -1,5 +1,27 @@
 import Foundation
 
+/// A single key, optionally preceded by modifiers. Reject malformed chords
+/// before any events are posted, so a typo cannot send a different shortcut.
+public struct KeyChord: Equatable, Sendable {
+    public let modifiers: [UInt16]
+    public let key: UInt16
+
+    public init?(_ binding: String) {
+        let parts = binding.split(separator: "+", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+        guard let last = parts.last, !KeyCodeMap.isModifier(name: last),
+              let key = KeyCodeMap.keycode(for: last) else { return nil }
+        var modifiers: [UInt16] = []
+        for part in parts.dropLast() {
+            guard KeyCodeMap.isModifier(name: part),
+                  let code = KeyCodeMap.keycode(for: part) else { return nil }
+            if !modifiers.contains(code) { modifiers.append(code) }
+        }
+        self.modifiers = modifiers
+        self.key = key
+    }
+}
+
 /// macOS ANSI virtual keycodes.
 public enum KeyCodeMap {
 

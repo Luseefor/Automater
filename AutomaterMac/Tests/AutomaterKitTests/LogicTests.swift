@@ -79,3 +79,12 @@ final class LogicTests: XCTestCase {
         XCTAssertNil(HotkeyManager.parse("notakey+combo"))
     }
 }
+
+extension LogicTests {
+    func testHotkeyParseRejectsMalformedBindingsRatherThanRegisteringAnotherKey() {
+        for binding in ["a+b", "unknown+ctrl+a", "ctrl+a+", "+a", "ctrl++a"] {
+            XCTAssertNil(HotkeyManager.parse(binding), binding)
+        }
+        XCTAssertNotNil(HotkeyManager.parse("right_ctrl+right_alt+a"))
+    }
+}

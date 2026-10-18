@@ -67,17 +67,20 @@ public final class HotkeyManager {
     static func parse(_ binding: String) -> (UInt32, UInt32)? {
         var mods: UInt32 = 0
         var key: UInt32?
-        for raw in binding.split(separator: "+") {
+        let tokens = binding.split(separator: "+", omittingEmptySubsequences: false)
+        guard !tokens.isEmpty else { return nil }
+        for raw in tokens {
             let token = raw.trimmingCharacters(in: .whitespaces)
                 .trimmingCharacters(in: CharacterSet(charactersIn: "<>"))
                 .lowercased()
             switch token {
-            case "ctrl", "control": mods |= UInt32(controlKey)
-            case "alt", "opt", "option": mods |= UInt32(optionKey)
-            case "shift": mods |= UInt32(shiftKey)
-            case "cmd", "command": mods |= UInt32(cmdKey)
+            case "ctrl", "control", "right_ctrl": mods |= UInt32(controlKey)
+            case "alt", "opt", "option", "right_alt": mods |= UInt32(optionKey)
+            case "shift", "right_shift": mods |= UInt32(shiftKey)
+            case "cmd", "command", "right_cmd": mods |= UInt32(cmdKey)
             default:
-                if let code = KeyCodeMap.keycode(for: token) { key = UInt32(code) }
+                guard key == nil, let code = KeyCodeMap.keycode(for: token) else { return nil }
+                key = UInt32(code)
             }
         }
         guard let key else { return nil }
@@ -87,18 +90,19 @@ public final class HotkeyManager {
     /// Canonical form: mods in ctrl,alt,shift,cmd order + key, lowercased —
     /// lets the recorder recognize its own app's hotkey chords.
     public static func normalized(_ combo: String) -> String {
-        var mods: [String] = []
+        var mods: Set<String> = []
         var tail: String?
         for raw in combo.split(separator: "+") {
             let token = raw.trimmingCharacters(in: .whitespaces).lowercased()
             switch token {
-            case "ctrl", "control": mods.append("ctrl")
-            case "alt", "opt", "option": mods.append("alt")
-            case "shift": mods.append("shift")
-            case "cmd", "command": mods.append("cmd")
+            case "ctrl", "control", "right_ctrl": mods.insert("ctrl")
+            case "alt", "opt", "option", "right_alt": mods.insert("alt")
+            case "shift", "right_shift": mods.insert("shift")
+            case "cmd", "command", "right_cmd": mods.insert("cmd")
             default: tail = token
             }
         }
-        return (mods + [tail ?? ""]).joined(separator: "+")
+        return (["ctrl", "alt", "shift", "cmd"].filter { mods.contains($0) }
+                + [tail ?? ""]).joined(separator: "+")
     }
 }
