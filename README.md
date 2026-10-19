@@ -1,34 +1,81 @@
 # Tandem
 
-Tandem (formerly Automater) is a compact native macOS utility for repeating mouse clicks and keyboard presses, recording macros, and keeping clipboard history close at hand.
+A small macOS app for repeated clicks, keyboard shortcuts, macros, and clipboard history.
 
-- **Repeat:** mouse clicks or keyboard shortcuts, adjustable intervals and repeat counts, current, fixed, or multiple points, and optional app targeting. Multiple points can run sequentially or as a fast burst. Re-pick individual points without rebuilding the list.
-- **Macros:** record, edit, save, and replay mouse and keyboard sequences, with finite or continuous loops. Choose Foreground playback for keyboard/text macros or Background for mouse sequences. Recorded mouse points follow their original windows.
-- **Clipboard:** search and preview recent text, image, and file copies. Choose how many copies to keep and when they expire in Clipboard Settings or Options → Auto-Cleanup. Pinned items stay; pin up to 30, copy them again, or paste into the previous app. Open history from the panel or with **Control–Option–V**; pause or clear it anytime.
-- **Appearance:** Light, Dark, or System mode, six accent colors, an optional menu bar icon, and a panel that can stay on top.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="output/qa/tandem-dark.png">
+  <img src="output/qa/tandem-light.png" alt="Tandem's Repeat panel with keyboard capture, interval controls, and Start and Stop buttons." width="500">
+</picture>
 
-The main window stays focused on Repeat and Macros. Clipboard history and Settings open separately. The menu bar icon can reopen the panel and control playback. **Control–Option–S** stops all automation, including a pending clipboard paste. Global shortcuts can be changed in Settings.
+- **Repeat** a mouse click or captured key combination. Use the cursor, a fixed point, or several points, with an interval and a repeat count.
+- **Record macros**, edit their steps, and save them for later. Replay once, a set number of times, or until stopped. Import and export macro files.
+- **Find previous copies** of text, images, and files. Search, pin, copy again, or paste into the previous app. Set a copy limit or expiry to keep history short; pinned items stay.
 
-The paired-arrow mark represents repetition and a companion working beside you. The app keeps its existing bundle identifier and local storage when upgrading from Automater.
+Light, dark, and system themes, six accent colors, and an optional always-on-top panel are in Settings. The menu bar controls work while the main window is closed.
 
-The native menus provide macro creation, import/export, duplication, clipboard search, appearance controls, and playback commands. Use **⌘1/⌘2** for Repeat/Macros, **⌘⇧V** for clipboard history, **⌘S** to save a macro, and **⌘.** to stop everything while Tandem is active. Unsaved macro changes are protected when switching macros or quitting.
+## Build and run
 
-## Background clicks
+Requires macOS 14 or later and Xcode command line tools with Swift 5.10 or later.
 
-Turn **Background** on, choose **Fixed point**, then use **Pick…** to click the spot once. This also selects its app and window. Start the repeat and use your mouse in another window. The point follows the chosen window when it moves; closing or minimizing that window stops the repeat. Multiple points and explicit window selection are also available.
+```sh
+git clone https://github.com/Luseefor/Automater.git
+cd Automater
+AutomaterMac/scripts/bundle_app.sh
+AutomaterMac/scripts/install_local.sh
+```
 
-## Compatibility
+The installer puts Tandem in `/Applications` and opens it. Allow it in **System Settings → Privacy & Security → Accessibility** before recording or running automation.
 
-Background delivery uses macOS accessibility actions and synthetic events. Apps may reject these inputs; Automater reports that as foreground recommended. It does not attempt to bypass app input protections.
+Tandem was previously named Automater. Existing macros and settings are kept when upgrading.
 
-## Testing
+## Click in one window while using another
 
-Run unit tests with `cd AutomaterMac && swift test`.
+1. In **Repeat → Mouse**, turn on **Background** and choose **Fixed point**.
+2. Click **Pick…**, then select the spot in the target window. This also selects its app and window.
+3. Set the interval and repeat count, then click **Start**.
 
-To produce a local review build, run `AutomaterMac/scripts/bundle_app.sh`, then `AutomaterMac/scripts/install_local.sh`. This installer closes the existing Automater instance before replacing it, so duplicate windows are not left running. Use `AutomaterMac/scripts/create_dmg.sh` to produce the DMG. Release signing and notarization require a Developer ID identity and a `notarytool` keychain profile; credentials are never stored in this repository.
+The target follows its window when you move it. Your pointer stays free. Closing or minimizing the target stops playback.
 
-See [the QA matrix](docs/QA.md), [privacy policy](docs/PRIVACY.md), and [support policy](docs/SUPPORT.md).
+For several points, choose **Multiple points → Pick Points…**, then **Finish**. **Burst ~100ms** clicks the whole list each round; **Sequential** waits between points. You can re-pick individual points without replacing the list.
+
+### What background playback can do
+
+Support depends on whether the target accepts macOS Accessibility actions or synthetic events. Some apps and games reject them. Background gameplay in Roblox is not verified.
+
+Mouse-only macros can use Background playback. Macros containing keyboard input or text need **Foreground**. Playback across macOS Spaces is limited to supported Accessibility clicks and may need an initial visit to the target's Space.
+
+Fast background bursts use an optional non-public CoreGraphics symbol. Timing varies by app; Accessibility delivery remains available when the symbol is missing. See [compatibility notes](docs/SUPPORT.md).
+
+## Default shortcuts
+
+These work while another app is active. Change them in Settings.
+
+| Action | Shortcut |
+| --- | --- |
+| Start / stop repeat | ⌃⌥A |
+| Start / stop recording | ⌃⌥R |
+| Play / stop macro | ⌃⌥P |
+| Stop all | ⌃⌥S |
+| Grab a point | ⌃⌥G |
+| Clipboard history | ⌃⌥V |
+
+⌃ is Control; ⌥ is Option. While Tandem is active, **⌘.** also stops everything.
+
+## Your data
+
+Macros, settings, and clipboard history stay on your Mac. There are no accounts, analytics, or cloud sync. Clipboard history can be paused or cleared; it is not encrypted by Tandem. See the [privacy policy](docs/PRIVACY.md) for storage and cleanup details.
+
+## Development
+
+```sh
+cd AutomaterMac
+swift test
+```
+
+The bundle script produces `dist/Tandem.app` and `dist/Tandem.zip`. Run `zsh AutomaterMac/scripts/create_dmg.sh` from the repository root to make a DMG after bundling. Notarization requires a Developer ID signing identity and a `notarytool` keychain profile.
+
+See the [QA notes](docs/QA.md) for automated coverage, native app checks, and known limits.
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)
