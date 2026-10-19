@@ -12,6 +12,8 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
     public var targetAppName: String?
     public var targetWindowTitle: String?
     public var activateBeforePlay: Bool
+    /// Nil keeps the legacy preference until the macro is loaded and saved.
+    public var backgroundPlayback: Bool?
 
     public init(
         id: String = UUID().uuidString.prefix(12).description,
@@ -22,7 +24,8 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
         targetAppBundleId: String? = nil,
         targetAppName: String? = nil,
         targetWindowTitle: String? = nil,
-        activateBeforePlay: Bool = true
+        activateBeforePlay: Bool = true,
+        backgroundPlayback: Bool? = nil
     ) {
         self.id = id
         self.name = name
@@ -33,6 +36,7 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
         self.targetAppName = targetAppName
         self.targetWindowTitle = targetWindowTitle
         self.activateBeforePlay = activateBeforePlay
+        self.backgroundPlayback = backgroundPlayback
     }
 
     enum CodingKeys: String, CodingKey {
@@ -42,6 +46,7 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
         case targetAppName = "target_app_name"
         case targetWindowTitle = "target_window_title"
         case activateBeforePlay = "activate_before_play"
+        case backgroundPlayback = "background_playback"
     }
 
     /// Lenient decode for persisted macro files.
@@ -57,6 +62,7 @@ public struct Macro: Codable, Equatable, Sendable, Identifiable {
         self.targetAppName = try c.decodeIfPresent(String.self, forKey: .targetAppName)
         self.targetWindowTitle = try c.decodeIfPresent(String.self, forKey: .targetWindowTitle)
         self.activateBeforePlay = try c.decodeIfPresent(Bool.self, forKey: .activateBeforePlay) ?? true
+        self.backgroundPlayback = try c.decodeIfPresent(Bool.self, forKey: .backgroundPlayback)
     }
 }
 
@@ -100,6 +106,10 @@ public struct PointSpec: Codable, Equatable, Sendable {
 
 /// Full clicker run configuration handed to the engine.
 public struct ClickerConfig: Sendable, Equatable {
+    public enum Action: String, CaseIterable, Sendable {
+        case mouseClick, keyPress
+    }
+
     public enum Mode: String, Sendable {
         case currentCursor, fixedPoint, multipoint
     }
@@ -111,6 +121,8 @@ public struct ClickerConfig: Sendable, Equatable {
     }
 
     public var intervalMs: Int
+    public var action: Action
+    public var keyCombo: String
     public var jitterMs: Int
     public var button: MouseButton
     public var clickKind: ClickKind
@@ -137,6 +149,10 @@ public struct ClickerConfig: Sendable, Equatable {
     public var multipoints: [PointSpec]
     public var backgroundToApp: Bool
     public var deliveryMode: DeliveryMode
+    /// Multipoint timing: false runs one point per interval (repeat counts
+    /// points); true fires all points as one ~100ms burst per round (repeat
+    /// counts full rounds, interval pauses between rounds).
+    public var multipointBurst: Bool
 
     public init(
         intervalMs: Int = 100,
@@ -156,9 +172,14 @@ public struct ClickerConfig: Sendable, Equatable {
         windowTitle: String? = nil,
         multipoints: [PointSpec] = [],
         backgroundToApp: Bool = false,
-        deliveryMode: DeliveryMode = .events
+        deliveryMode: DeliveryMode = .events,
+        action: Action = .mouseClick,
+        keyCombo: String = "space",
+        multipointBurst: Bool = false
     ) {
         self.intervalMs = intervalMs
+        self.action = action
+        self.keyCombo = keyCombo
         self.jitterMs = jitterMs
         self.button = button
         self.clickKind = clickKind
@@ -176,5 +197,6 @@ public struct ClickerConfig: Sendable, Equatable {
         self.multipoints = multipoints
         self.backgroundToApp = backgroundToApp
         self.deliveryMode = deliveryMode
+        self.multipointBurst = multipointBurst
     }
 }

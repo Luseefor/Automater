@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-18",
+  "app": "Tandem",
+  "version": "0.3.2",
+  "automated_tests": {
+    "command": "swift test --package-path AutomaterMac",
+    "passed": 97,
+    "failed": 0,
+    "new_recording_regressions": 6
+  },
+  "regressions": [
+    "Navigation/function-key characters remain key actions, not text",
+    "Key-event flags recover modifiers already held before capture",
+    "Application hotkeys stay excluded even without earlier modifier events",
+    "Scroll bursts do not merge across windows",
+    "Stopping a held key stores a complete key action with its duration",
+    "Shifted characters use the text received by the target"
+  ],
+  "installed_app_checks": [
+    "Test window is focused before recording inputs",
+    "Recording actions reached only the test window",
+    "Recording saves as one named macro",
+    "Stop hotkey excluded from macro",
+    "Saved recording replays exact text and click order",
+    "Recording keeps navigation keys and shifted characters",
+    "Saved macro reloads the complete recording",
+    "Deleting a recorded entry saves exactly one fewer step",
+    "Edited saved recording replays without the deleted click",
+    "A second recording replaces the previous take cleanly",
+    "New mouse recording plays in Background",
+    "Background replay leaves the cursor and active app alone",
+    "Clearing and saving the recording stays empty",
+    "Reloaded empty recording cannot start playback"
+  ],
+  "live_fixture": {
+    "target": "Dedicated native AppKit window with an editable text field and three buttons",
+    "recorded_steps": 9,
+    "recorded_text_result": "aZ!cd",
+    "recorded_click_order": [
+      0,
+      2,
+      1
+    ],
+    "edited_click_order": [
+      2,
+      1
+    ],
+    "second_take_steps": 1,
+    "input_source": "Controlled mouse events and System Events session keyboard events",
+    "clipboard_contents_read": false
+  },
+  "changes": [
+    "Capture session-level input and continue servicing the recorder during menu tracking",
+    "Resolve printable characters through AppKit, preserving case and shifted punctuation",
+    "Keep navigation and function keys out of text coalescing",
+    "Recover active chord modifiers and filter global hotkeys",
+    "Split scroll bursts by their target window",
+    "Complete held keys before copying stopped recording into the app",
+    "Preserve existing steps when a new event tap cannot start",
+    "Switch to the Macros panel after recording begins"
+  ],
+  "validation": {
+    "strict_code_signature": "passed",
+    "installed_matches_dist": true,
+    "binary_sha256": "e91ebde297eca4c166c1d90caa85fb1306d2044d7595970bc57c4af54b344a81",
+    "compiler_warnings": 0
+  },
+  "cleanup": {
+    "removed_temporary_macro_ids": [
+      "946A2CC9-25B",
+      "7230A034-8C1",
+      "77E6AB40-4C4"
+    ],
+    "all_known_temporary_macros_removed": true
+  },
+  "limitations": "Live checks used the dedicated native window; third-party app or game compatibility was not verified in this audit."
+}

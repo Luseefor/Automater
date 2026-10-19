@@ -36,7 +36,7 @@ struct FlagReader {
 
 let argv = Array(CommandLine.arguments.dropFirst())
 guard let command = argv.first else {
-    print("automater-cli 0.1.0 (swift-rewrite)")
+    print("automater-cli 0.2.1")
     exit(0)
 }
 var flags = FlagReader(args: Array(argv.dropFirst()))
@@ -44,7 +44,7 @@ var flags = FlagReader(args: Array(argv.dropFirst()))
 switch command {
 
 case "--version":
-    print("automater-cli 0.1.0 (swift-rewrite)")
+    print("automater-cli 0.2.1")
     exit(0)
 
 case "cursor":
@@ -103,8 +103,9 @@ case "click-fixed":
 
     let engine = ClickerEngine()
     let done = DispatchSemaphore(value: 0)
+    let runConfig = config
     Task {
-        await engine.start(config: config) { msg in
+        await engine.start(config: runConfig) { msg in
             FileHandle.standardError.write((msg + "\n").data(using: .utf8)!)
         }
         while await engine.isBusy { try? await Task.sleep(nanoseconds: 50_000_000) }
@@ -150,8 +151,9 @@ case "multipoint":
 
     let engine = ClickerEngine()
     let done = DispatchSemaphore(value: 0)
+    let runConfig = config
     Task {
-        await engine.start(config: config) { msg in
+        await engine.start(config: runConfig) { msg in
             FileHandle.standardError.write((msg + "\n").data(using: .utf8)!)
         }
         while await engine.isBusy { try? await Task.sleep(nanoseconds: 50_000_000) }

@@ -1,0 +1,547 @@
+{
+  "date": "2026-10-18",
+  "app": "Tandem",
+  "version": "0.3.3",
+  "automated_tests": {
+    "command": "swift test --package-path AutomaterMac",
+    "passed": 115,
+    "failed": 0
+  },
+  "installed_binary_sha256": "843c6f83c0e8d643c11ee7825303e336da2e4b8995e775527e2272ca4b283cce",
+  "strict_signature_verified": true,
+  "dist_binary_matches_installed": true,
+  "initial_defect": {
+    "same_desktop_delivered": 12,
+    "other_space_delivered": 8,
+    "expected": 12,
+    "cause": "Fresh AXWindows enumeration omits non-focused windows on inactive Spaces. Retaining exact verified AX window handles before leaving the target Space allows subsequent button lookup and AXPress."
+  },
+  "fresh_record_to_other_space": {
+    "checks": [
+      "Recorded fixture target is active",
+      "Recorded fixture target is active",
+      "Recorded fixture target is active",
+      "Fresh recording has three actions in both exact windows",
+      "Fresh recording uses current window numbers",
+      "Other app is active before playback",
+      "Other app created fullscreen Space before first playback",
+      "Both fresh recorded windows are on the other Space",
+      "First playback after recording delivers all twelve clicks off-Space",
+      "Cold-record Space playback does not move cursor or switch app"
+    ],
+    "evidence": {
+      "before_play": {
+        "frontmost": "com.luseefor.tandem.background-cover-qa",
+        "cursor": "425.8333435058594 559.0"
+      },
+      "after_play": {
+        "frontmost": "com.luseefor.tandem.background-cover-qa",
+        "cursor": "425.8333435058594 559.0",
+        "cover": {
+          "lastCommand": "{\"action\": \"fullscreen\", \"nonce\": \"f389421e3119478ba26ebf5cf6c58694\"}",
+          "mouseDowns": 0,
+          "order": [],
+          "counts": [
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "fullscreen": true,
+          "windows": [
+            {
+              "visible": true,
+              "id": 54306,
+              "points": [
+                [
+                  84.16666666666667,
+                  1032
+                ],
+                [
+                  217.5,
+                  1032
+                ],
+                [
+                  350.83333333333337,
+                  1032
+                ]
+              ],
+              "minimized": false,
+              "title": "Tandem Other Space Check"
+            }
+          ],
+          "pid": 46891
+        }
+      },
+      "target_counts": [
+        [
+          4,
+          0,
+          4
+        ],
+        [
+          0,
+          4,
+          0
+        ]
+      ],
+      "target_order": [
+        "0:0",
+        "1:1",
+        "0:2",
+        "0:0",
+        "1:1",
+        "0:2",
+        "0:0",
+        "1:1",
+        "0:2",
+        "0:0",
+        "1:1",
+        "0:2"
+      ],
+      "off_space_windows": [
+        {
+          "onScreen": false,
+          "bounds": {
+            "X": 619,
+            "Height": 313,
+            "Y": 418,
+            "Width": 440
+          },
+          "id": 54301
+        },
+        {
+          "id": 54300,
+          "onScreen": false,
+          "bounds": {
+            "X": 75,
+            "Height": 313,
+            "Y": 383,
+            "Width": 440
+          }
+        }
+      ]
+    }
+  },
+  "saved_macro_after_restart": {
+    "checks": [
+      "Saved macro restores Background after app restart",
+      "Other app is active before playback",
+      "Cover creates another Space",
+      "Saved targets are off current Space",
+      "Saved macro after restart delivers 12 off-Space actions",
+      "Saved playback preserves active app and pointer"
+    ],
+    "evidence": {
+      "target_order": [
+        "0:0",
+        "1:1",
+        "0:2",
+        "0:0",
+        "1:1",
+        "0:2",
+        "0:0",
+        "1:1",
+        "0:2",
+        "0:0",
+        "1:1",
+        "0:2"
+      ]
+    }
+  },
+  "window_loop_stop_negative_checks": {
+    "checks": [
+      "Recorded macro saves Background mode",
+      "Foreground macro restores its own mode",
+      "Background macro restores its mode after another macro",
+      "Other app is active before playback",
+      "New build repeats exact two-window order four times",
+      "Other window receives no leaked clicks",
+      "Moving-target run starts",
+      "Loops follow moved window while cursor is used elsewhere",
+      "Background macro leaves the freely moved pointer alone",
+      "Other app entered a real fullscreen Space",
+      "Recorded target windows are off the current Space",
+      "Four loops land on both windows from another Space",
+      "Space playback keeps other app fullscreen, active and cursor free",
+      "Temporary fullscreen Space exits cleanly",
+      "Other app is active before playback",
+      "Continuous multi-window macro runs beyond one loop",
+      "Global Stop cancels continuous playback from other window",
+      "Other app is active before playback",
+      "Mixed keyboard Background macro stops before any click",
+      "Other app is active before playback",
+      "Target is actually minimized",
+      "Minimized target stops without redirecting to sibling",
+      "Other app is active before playback"
+    ],
+    "evidence": {
+      "moving_before": {
+        "cursor": "220.0 150.0",
+        "frontmost": "com.luseefor.tandem.background-cover-qa",
+        "cover": {
+          "lastCommand": "{\"action\": \"reset\", \"nonce\": \"15d4f4254c8d48af829a9795e2b974b2\"}",
+          "mouseDowns": 0,
+          "order": [],
+          "counts": [
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "fullscreen": false,
+          "windows": [
+            {
+              "visible": true,
+              "id": 54306,
+              "points": [
+                [
+                  114.16666666666667,
+                  594
+                ],
+                [
+                  247.5,
+                  594
+                ],
+                [
+                  380.83333333333337,
+                  594
+                ]
+              ],
+              "minimized": false,
+              "title": "Tandem Other Space Check"
+            }
+          ],
+          "pid": 46891
+        }
+      },
+      "moving_after": {
+        "cursor": "220.0 150.0",
+        "frontmost": "com.luseefor.tandem.background-cover-qa",
+        "cover": {
+          "lastCommand": "{\"action\": \"reset\", \"nonce\": \"15d4f4254c8d48af829a9795e2b974b2\"}",
+          "mouseDowns": 0,
+          "order": [],
+          "counts": [
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "fullscreen": false,
+          "windows": [
+            {
+              "visible": true,
+              "id": 54306,
+              "points": [
+                [
+                  114.16666666666667,
+                  594
+                ],
+                [
+                  247.5,
+                  594
+                ],
+                [
+                  380.83333333333337,
+                  594
+                ]
+              ],
+              "minimized": false,
+              "title": "Tandem Other Space Check"
+            }
+          ],
+          "pid": 46891
+        }
+      },
+      "off_space_windows": [
+        {
+          "id": 54423,
+          "onScreen": false,
+          "bounds": {
+            "X": -233,
+            "Height": 30,
+            "Y": -1440,
+            "Width": 2560
+          }
+        },
+        {
+          "bounds": {
+            "X": -233,
+            "Height": 30,
+            "Y": -1440,
+            "Width": 2560
+          },
+          "id": 54421,
+          "onScreen": false
+        },
+        {
+          "onScreen": false,
+          "bounds": {
+            "X": -233,
+            "Height": 30,
+            "Y": -1440,
+            "Width": 2560
+          },
+          "id": 54420
+        },
+        {
+          "id": 54348,
+          "onScreen": false,
+          "bounds": {
+            "X": 2327,
+            "Height": 30,
+            "Y": -1440,
+            "Width": 1080
+          }
+        },
+        {
+          "id": 54346,
+          "onScreen": false,
+          "bounds": {
+            "X": 2327,
+            "Height": 30,
+            "Y": -1440,
+            "Width": 1080
+          }
+        },
+        {
+          "id": 54345,
+          "bounds": {
+            "X": 2327,
+            "Height": 30,
+            "Y": -1440,
+            "Width": 1080
+          },
+          "onScreen": false
+        },
+        {
+          "onScreen": false,
+          "id": 54343,
+          "bounds": {
+            "X": 2327,
+            "Height": 30,
+            "Y": -1440,
+            "Width": 1080
+          }
+        },
+        {
+          "id": 54301,
+          "onScreen": false,
+          "bounds": {
+            "X": 619,
+            "Height": 313,
+            "Y": 418,
+            "Width": 440
+          }
+        },
+        {
+          "bounds": {
+            "X": 0,
+            "Height": 39,
+            "Y": 0,
+            "Width": 1800
+          },
+          "id": 54299,
+          "onScreen": false
+        },
+        {
+          "id": 54298,
+          "onScreen": false,
+          "bounds": {
+            "X": 0,
+            "Height": 39,
+            "Y": 0,
+            "Width": 1800
+          }
+        },
+        {
+          "onScreen": false,
+          "bounds": {
+            "X": 0,
+            "Height": 39,
+            "Y": 0,
+            "Width": 1800
+          },
+          "id": 54297
+        },
+        {
+          "bounds": {
+            "X": 0,
+            "Height": 39,
+            "Y": 0,
+            "Width": 1800
+          },
+          "id": 54296,
+          "onScreen": false
+        },
+        {
+          "id": 54416,
+          "bounds": {
+            "X": -233,
+            "Height": 30,
+            "Y": -1440,
+            "Width": 2560
+          },
+          "onScreen": false
+        },
+        {
+          "id": 54300,
+          "bounds": {
+            "X": 275,
+            "Height": 313,
+            "Y": 348,
+            "Width": 440
+          },
+          "onScreen": false
+        }
+      ],
+      "mixed_status": "Keyboard and swipe macros need Foreground playback",
+      "minimized_status": "Background target is minimized \u2014 restore it onto a Space, then replay (step 1 of 3, target TandemBackgroundTargetQA)",
+      "closed_status": "Background target is on another Space and cannot be reached \u2014 open its window on this Space once, then replay (step 1 of 3, target TandemBackgroundTargetQA)",
+      "failure_status": "Background target is on another Space and cannot be reached \u2014 open its window on this Space once, then replay (step 1 of 3, target TandemBackgroundTargetQA)"
+    }
+  },
+  "closed_window_followup": {
+    "checks": [
+      "Other app is active before playback",
+      "Recorded target window is actually closed",
+      "Closed recorded window stops rather than clicking its sibling"
+    ],
+    "evidence": {
+      "before": {
+        "cursor": "146.01171875 458.6796875",
+        "frontmost": "com.luseefor.tandem.background-cover-qa"
+      },
+      "closed_status": "Background target is on another Space and cannot be reached \u2014 open its window on this Space once, then replay (step 1 of 3, target TandemBackgroundTargetQA)",
+      "target": {
+        "mouseDowns": 0,
+        "order": [],
+        "fullscreen": false,
+        "windows": [
+          {
+            "points": [
+              [
+                359.1666666666667,
+                524
+              ],
+              [
+                492.5,
+                524
+              ],
+              [
+                625.8333333333334,
+                524
+              ]
+            ],
+            "id": 54300,
+            "visible": false,
+            "minimized": false,
+            "title": "Tandem Loop Target 1"
+          },
+          {
+            "points": [
+              [
+                703.1666666666666,
+                594
+              ],
+              [
+                836.5,
+                594
+              ],
+              [
+                969.8333333333334,
+                594
+              ]
+            ],
+            "visible": true,
+            "id": 54301,
+            "title": "Tandem Loop Target 2",
+            "minimized": false
+          }
+        ],
+        "counts": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "lastCommand": "{\"action\": \"close\", \"nonce\": \"59259a8efa7e4053ae66d8b96be2b11a\", \"index\": 0}",
+        "pid": 46888
+      },
+      "cover": {
+        "lastCommand": "{\"action\": \"reset\", \"nonce\": \"2a1111b727a54986962bf3768297e0cb\"}",
+        "mouseDowns": 0,
+        "order": [],
+        "counts": [
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "fullscreen": false,
+        "windows": [
+          {
+            "id": 54306,
+            "title": "Tandem Other Space Check",
+            "visible": true,
+            "points": [
+              [
+                114.16666666666667,
+                594
+              ],
+              [
+                247.5,
+                594
+              ],
+              [
+                380.83333333333337,
+                594
+              ]
+            ],
+            "minimized": false
+          }
+        ],
+        "pid": 46891
+      },
+      "after": {
+        "cursor": "146.01171875 458.6796875",
+        "frontmost": "com.luseefor.tandem.background-cover-qa"
+      }
+    }
+  },
+  "validation_notes": [
+    "Initial cold-record pointer assertion captured its baseline before native fullscreen animation; settled-Space baseline and before/after evidence passed without product changes.",
+    "First moving-pointer assertion did not wait for synthetic mouse motion to settle. With settled input and explicit before/after evidence, pointer, active app and zero leaked clicks passed.",
+    "Broad live run ended with an overly specific closed-window status assertion expecting not found. The fixture retains its NSWindow after close, so macOS retains CG metadata and Tandem stops with cannot be reached. Independent close follow-up verified closed visibility, empty action order and zero sibling/other-app clicks.",
+    "An additional closed-target cursor/focus check was interrupted by unrelated native input: pointer moved and Ace became frontmost. Not counted as a pass; playback pointer/focus isolation passed separately during actual repeated playback."
+  ],
+  "limits": [
+    "Live cross-Space coverage is native AppKit AXPress-backed left single clicks, three recorded actions across two windows and four loops.",
+    "Other-Space support requires queryable/cached exact Accessibility targets; current-macro loading, recording and Space visits prepare those handles without input or activation. Cold launch already away from targets can require visiting their Space once.",
+    "Background keyboard/text/swipe macros still require Foreground; unsupported off-Space actions report a stop rather than being treated as supported.",
+    "No new universal Brave, Roblox or other game compatibility claim."
+  ],
+  "cleanup": {
+    "removed_qa_macro_ids": [
+      "34FB6B24-7C7",
+      "qa-bg-d7956e8fa55343bd8de453d0bdf60f79",
+      "qa-bg-4801637ef31c40ec8f92be6f915f3f2e",
+      "qa-bg-40cb89fc4d004f05853515f94dba84de",
+      "qa-bg-2febaffb3e094f13a9fec4b824f4ba73"
+    ],
+    "fixtures_quit": true,
+    "app_reopened": true,
+    "clipboard_contents_read": false
+  }
+}

@@ -60,6 +60,8 @@ public enum Storage {
         "repeat_count": 0,
         "mouse_button": "left",
         "click_kind": "single",
+        "repeat_action": "mouseClick",
+        "repeat_key": "space",
         "mode": "multipoint",
         "background_to_app": false,
         "delivery_mode": "accessibility",

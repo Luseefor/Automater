@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-18",
+  "app": "Tandem",
+  "version": "0.3.4",
+  "feature": "Clipboard auto cleanup",
+  "policies": {
+    "count": "Newest N unpinned copies, pinned items additional",
+    "count_choices": [
+      "5 copies",
+      "10 copies",
+      "20 copies",
+      "50 copies",
+      "100 copies",
+      "200 copies",
+      "500 copies",
+      "1,000 copies"
+    ],
+    "expiration_choices": [
+      "Never",
+      "15 minutes",
+      "1 hour",
+      "1 day",
+      "7 days",
+      "30 days"
+    ],
+    "defaults": {
+      "count": 100,
+      "expiration": "Never"
+    },
+    "cleanup_runs": [
+      "On load",
+      "On policy change",
+      "During idle polling, including when capture is paused",
+      "On unpin"
+    ],
+    "removed_images": "Unreferenced assets pruned from local repository"
+  },
+  "automated_validation": {
+    "command": "swift test --package-path AutomaterMac",
+    "passed": 128,
+    "failed": 0,
+    "new_retention_tests": 13,
+    "covered": [
+      "Pinned-exempt count cap",
+      "Expiry boundary",
+      "Never expiry",
+      "Paused/idle cleanup without new copies",
+      "Startup cleanup with both saved policies",
+      "Preference persistence and invalid-value clamping",
+      "Immediate policy changes",
+      "Selection fallback and empty selection",
+      "Expired image asset removal",
+      "Unpin reapplies policy"
+    ],
+    "initial_failure": "Tester caught recursive @Published limit observer. Guarded clamping fixed before installation; final full suite passed."
+  },
+  "native_ui": {
+    "settings_controls": [
+      {
+        "enabled": true,
+        "id": "clipboard-retention-limit",
+        "role": "AXPopUpButton",
+        "value": "100 copies",
+        "label": "Keep latest"
+      },
+      {
+        "id": "clipboard-retention-age",
+        "label": "Remove after",
+        "role": "AXPopUpButton",
+        "value": "Never",
+        "enabled": true
+      }
+    ],
+    "both_option_menus_opened": true,
+    "preferences_changed_for_ui_test": false,
+    "screenshot": "Unavailable: local CGPreflightScreenCaptureAccess returned false; native Accessibility checks passed.",
+    "clipboard_contents_read_for_qa": false,
+    "system_clipboard_modified_for_qa": false
+  },
+  "release": {
+    "installed": "/Applications/Tandem.app",
+    "strict_signature_verified": true,
+    "dist_matches_installed": true,
+    "sha256": "e76e9d20bddbc8b80d7cf2adb9bf3e73ff511f829bcbcec39d1ecfb5d39050b8"
+  }
+}
