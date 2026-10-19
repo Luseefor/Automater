@@ -555,7 +555,7 @@ final class AppState: ObservableObject {
             }
             guard !Task.isCancelled, clickerRunID == runID else { return }
             await engine.start(config: config) { [weak self] msg in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     guard let self, self.clickerRunID == runID else { return }
                     self.status = msg
                 }
@@ -1021,7 +1021,7 @@ final class AppState: ObservableObject {
                 backgroundToApp: playInBackground,
                 deliveryMode: deliveryMode
             ) { [weak self] msg in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     guard let self, self.macroRunID == runID else { return }
                     self.status = msg
                 }

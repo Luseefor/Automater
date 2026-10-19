@@ -14,7 +14,9 @@ struct CompactPanelView: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var pocket: PocketController
     @Environment(\.openWindow) private var openWindow
+    #if compiler(>=6.0)
     @Environment(\.openSettings) private var openSettings
+    #endif
     private var selection: PanelTab { state.panelTab }
     @FocusState private var focusedTab: PanelTab?
     @AppStorage("general.keepOnTop") private var isPinned = false
@@ -80,9 +82,23 @@ struct CompactPanelView: View {
                 state: state, pocket: pocket,
                 showPanel: { openWindow(id: "compact-panel") },
                 showClipboard: { openWindow(id: "clipboard-panel") },
-                showSettings: { openSettings() }
+                showSettings: { presentSettings() }
             )
         }
+    }
+
+    private func presentSettings() {
+        #if compiler(>=6.0)
+        openSettings()
+        #else
+        // Older SDKs expose SettingsLink but no programmatic openSettings
+        // action. Invoke the app's native Settings menu item instead.
+        guard let appMenu = NSApp.mainMenu?.items.first?.submenu,
+              let index = appMenu.items.firstIndex(where: {
+                  $0.keyEquivalent == "," && $0.keyEquivalentModifierMask.contains(.command)
+              }) else { return }
+        appMenu.performActionForItem(at: index)
+        #endif
     }
 
     private func panelTab(_ tab: PanelTab) -> some View {
@@ -161,8 +177,12 @@ struct CompactPanelView: View {
 
 private struct HideDefaultWindowTitle: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
+        #if compiler(>=6.0)
         if #available(macOS 15, *) { content.toolbar(removing: .title) }
         else { content }
+        #else
+        content
+        #endif
     }
 }
 
