@@ -359,7 +359,7 @@ final class AppState: ObservableObject {
             .sink { [weak self] _ in self?.persistSettings() }
             .store(in: &cancellables)
         center.publisher(for: .automaterToggle)
-            .sink { [weak self] _ in self?.toggleClicker() }
+            .sink { [weak self] _ in self?.toggleClicker(fromShortcut: true) }
             .store(in: &cancellables)
         center.publisher(for: .automatorRecordToggle)
             .sink { [weak self] _ in self?.toggleRecording() }
@@ -486,7 +486,10 @@ final class AppState: ObservableObject {
     /// Below this the engine clamps to a near-busy-loop; refuse instead.
     static let minimumIntervalMs = 10
 
-    func toggleClicker() {
+    /// Started from the global hotkey, the pointer is already where the user
+    /// wants it — no countdown needed. Started from a button, foreground
+    /// input needs time for the user to get off Start (now Stop).
+    func toggleClicker(fromShortcut: Bool = false) {
         endMacroPointCapture()
         if isClicking { stopClicker(); return }
         onStartAutomation?()
@@ -549,11 +552,12 @@ final class AppState: ObservableObject {
         // Start button before foreground input begins. Without this, a
         // foreground current-cursor clicker fires while the pointer is still
         // over Start (now Stop) and immediately clicks Stop on itself.
-        let needsCountdown = config.action == .keyPress
+        let needsCountdown = !fromShortcut && (config.action == .keyPress
             || (config.action == .mouseClick && !config.backgroundToApp
-                && config.mode == .currentCursor)
-        status = config.action == .keyPress ? "Keyboard repeat starts in 2 seconds…"
-            : needsCountdown ? "Clicking starts in 2 seconds — move the mouse into position…"
+                && config.mode == .currentCursor))
+        status = needsCountdown
+            ? (config.action == .keyPress ? "Keyboard repeat starts in 2 seconds…"
+                : "Clicking starts in 2 seconds — move the mouse into position…")
             : "Starting…"
         clickerTask = Task {
             if needsCountdown {
