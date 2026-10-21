@@ -160,7 +160,8 @@ struct CompactPanelView: View {
             .tint(selectedActionRunning ? .red : .accentColor)
             .disabled(state.isPicking || state.isCapturingFixedPoint || state.isCapturingMacroPoint
                       || (selection == .macros && !state.playingMacro && state.playableMacro().steps.isEmpty))
-            .help(selection == .repeatAction && state.repeatAction == .keyPress
+            .help(selection == .repeatAction && (state.repeatAction == .keyPress
+                || (!state.backgroundToApp && state.mode == .currentCursor))
                   ? "Start after a 2-second countdown" : "Start or stop playback")
             Button { state.stopAll() } label: {
                 HeaderIcon(name: "stop.fill")
