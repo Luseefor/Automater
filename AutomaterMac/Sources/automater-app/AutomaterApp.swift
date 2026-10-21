@@ -545,11 +545,18 @@ final class AppState: ObservableObject {
         isClicking = true
         let runID = UUID()
         clickerRunID = runID
-        // Let the user release the Start click / shortcut and switch apps
-        // before foreground key events begin.
-        status = config.action == .keyPress ? "Keyboard repeat starts in 2 seconds…" : "Starting…"
+        // Let the user release the Start click / shortcut and move off the
+        // Start button before foreground input begins. Without this, a
+        // foreground current-cursor clicker fires while the pointer is still
+        // over Start (now Stop) and immediately clicks Stop on itself.
+        let needsCountdown = config.action == .keyPress
+            || (config.action == .mouseClick && !config.backgroundToApp
+                && config.mode == .currentCursor)
+        status = config.action == .keyPress ? "Keyboard repeat starts in 2 seconds…"
+            : needsCountdown ? "Clicking starts in 2 seconds — move the mouse into position…"
+            : "Starting…"
         clickerTask = Task {
-            if config.action == .keyPress {
+            if needsCountdown {
                 do { try await Task.sleep(nanoseconds: 2_000_000_000) }
                 catch { return }
             }
